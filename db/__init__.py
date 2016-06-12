@@ -5,6 +5,7 @@
 
 import typing
 import sqlalchemy
+import threading
 from sqlalchemy import func
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.orm.attributes import flag_modified
@@ -18,6 +19,7 @@ from sqlalchemy.sql.expression import Insert
 
 ON_CONFLICT_DO_NOTHING = 'ON CONFLICT DO NOTHING'
 ON_CONFLICT_DO_UPDATE = 'ON CONFLICT (%(column)s) DO UPDATE SET %(updates)s'
+
 
 def get_model_dict(model: declarative_base) -> dict:
     """:return: dict version of the model"""
@@ -70,38 +72,50 @@ def connect(username, password, database, host='localhost', port=5432):
     return engine
 
 
-_engine = connect(**Environment("DB"))
-_Session = sessionmaker(bind=_engine, autoflush=True)
-_AutoSession = sessionmaker(bind=_engine, autocommit=True, autoflush=True)
-Base = declarative_base(bind=_engine)
+Base = declarative_base()
 
 
 class DB(object):
     """ central database manager """
+    _db = threading.local()
+    _db.engine = None
+    _db.Session = None
+    _db.AutoSession = None
+
+    @classmethod
+    def init_db(cls, force=True):
+        """lazy instantiate the _db object"""
+        # todo threadlocal
+        if force or cls._db.engine is None:
+            cls._db.engine = connect(**Environment("DB"))
+            cls._db.Session = sessionmaker(bind=cls._db.engine, autoflush=True)
+            cls._db.AutoSession = sessionmaker(bind=cls._db.engine, autocommit=True, autoflush=True)
 
     def __init__(self, create_all=True):
+        self.init_db()
         if create_all:
-            Base.metadata.create_all(checkfirst=True)
+            Base.metadata.create_all(bind=self._db.engine, checkfirst=True)
 
     @property
     def engine(self) -> sqlalchemy.engine.Engine:
         """:return: the engine"""
-        return _engine
+        return self._db.engine
 
     @property
     def session(self) -> Session:
         """:return: a session"""
-        return _Session()
+        return self._db.Session()
 
     @property
     def auto_session(self) -> Session:
         """:return: an autocommit session"""
-        return _AutoSession()
+        return self._db.AutoSession()
 
     @contextmanager
     def ctx(self) -> Session:
         """:return: a sqlalchemy session for the configured database"""
         session = self.session
+        # noinspection PyBroadException
         try:
             yield session
         except:
