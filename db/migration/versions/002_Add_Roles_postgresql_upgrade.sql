@@ -39,5 +39,5 @@ GRANT "write.data" TO "manage.data";
 
 CREATE ROLE "manage.config"
   NOSUPERUSER INHERIT NOCREATEDB NOCREATEROLE NOREPLICATION;
-GRANT "read.config" TO "manage.data";
+GRANT "read.config" TO "manage.config";
 GRANT "write.config" TO "manage.config";
