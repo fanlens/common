@@ -1,0 +1,2 @@
+DROP SCHEMA meta;
+DROP SCHEMA data;

@@ -1,0 +1,12 @@
+DROP ROLE "manage.users";
+DROP ROLE "manage.meta";
+DROP ROLE "manage.data";
+DROP ROLE "manage.config";
+DROP ROLE "write.users";
+DROP ROLE "write.meta";
+DROP ROLE "write.data";
+DROP ROLE "write.config";
+DROP ROLE "read.users";
+DROP ROLE "read.meta";
+DROP ROLE "read.data";
+DROP ROLE "read.config";
