@@ -6,10 +6,12 @@
 import typing
 import sqlalchemy
 import threading
+import logging
 from sqlalchemy import func
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.dialects import postgresql
 from contextlib import contextmanager
 
 from config.env import Environment
@@ -19,6 +21,10 @@ from sqlalchemy.sql.expression import Insert
 
 ON_CONFLICT_DO_NOTHING = 'ON CONFLICT DO NOTHING'
 ON_CONFLICT_DO_UPDATE = 'ON CONFLICT (%(column)s) DO UPDATE SET %(updates)s'
+
+
+def compiled_str(query):
+    return str(query.statement.compile(dialect=postgresql.dialect(), compile_kwargs={"literal_binds": True}))
 
 
 def get_model_dict(model: declarative_base) -> dict:
@@ -118,7 +124,8 @@ class DB(object):
         # noinspection PyBroadException
         try:
             yield session
-        except:
+        except Exception as err:
+            logging.exception('caught exception in db context, rolling back transaction', err)
             session.rollback()
         finally:
             session.close()
@@ -142,7 +149,7 @@ class DBMapper(typing.Generic[T]):
             try:
                 return fun(entry)
             except Exception as err:
-                print("caught error during mapping, skipping", err)
+                logging.error("caught error during mapping, skipping", err)
                 session.expunge(entry)
 
         return _wrapped

@@ -38,7 +38,7 @@ class FacebookPostEntry(Base):
 
 class FacebookCommentEntry(Base):
     __tablename__ = "facebook_comments"
-    post_id = Column(String, ForeignKey("data.facebook_posts.id", ondelete='CASCADE'), nullable=False)
+    post_id = Column(String, ForeignKey(FacebookPostEntry.id, ondelete='CASCADE'), nullable=False)
     id = Column(String, primary_key=True)
     data = Column(JSONB, nullable=False)
     meta = Column(JSONB, nullable=False, default={})
@@ -59,7 +59,7 @@ class FacebookCommentEntry(Base):
 
 class FacebookReactionEntry(Base):
     __tablename__ = "facebook_reactions"
-    post_id = Column(String, ForeignKey("data.facebook_posts.id", ondelete='CASCADE'), nullable=False)
+    post_id = Column(String, ForeignKey(FacebookPostEntry.id, ondelete='CASCADE'), nullable=False)
     id = Column(String, primary_key=True)
     data = Column(JSONB, nullable=False)
     meta = Column(JSONB, nullable=False, default={})
