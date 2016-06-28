@@ -20,7 +20,7 @@ class Model(Base):
     id = Column(String, primary_key=True)
     params = Column(JSONB, nullable=False)
     score = Column(Float, nullable=False)
-    trained_ts = Column(DateTime, nullable=False, default=datetime.datetime.now())
+    trained_ts = Column(DateTime(timezone=True), nullable=False, default=datetime.datetime.now())
 
     __table_args__ = (
         Index(__tablename__ + "_user_index", user_id),
