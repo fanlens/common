@@ -97,10 +97,8 @@ class DB(object):
             cls._db.Session = sessionmaker(bind=cls._db.engine, autoflush=True)
             cls._db.AutoSession = sessionmaker(bind=cls._db.engine, autocommit=True, autoflush=True)
 
-    def __init__(self, create_all=True):
+    def __init__(self):
         self.init_db()
-        if create_all:
-            Base.metadata.create_all(bind=self._db.engine, checkfirst=True)
 
     @property
     def engine(self) -> sqlalchemy.engine.Engine:

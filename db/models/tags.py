@@ -6,7 +6,6 @@ from sqlalchemy.orm import relationship
 from db import Base
 from db.models import SCHEMA_META
 from db.models.facebook import FacebookCommentEntry
-from db.models.users import User
 
 
 class Tag(Base):
@@ -64,7 +63,7 @@ class TagToTagSet(Base):
 class UserToTagSet(Base):
     __tablename__ = "user_tagset"
 
-    user_id = Column(Integer, ForeignKey(User.id, ondelete='CASCADE'), primary_key=True)
+    user_id = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'), primary_key=True)
     tagset_id = Column(Integer, ForeignKey(TagSet.id, ondelete='CASCADE'), primary_key=True)
 
     def __repr__(self):
@@ -73,7 +72,7 @@ class UserToTagSet(Base):
 
 class UserToTagToComment(Base):
     __tablename__ = "user_tag_comment"
-    user_id = Column(Integer, ForeignKey(User.id, ondelete='CASCADE'), primary_key=True)
+    user_id = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'), primary_key=True)
     tag = Column(String, ForeignKey(Tag.tag, ondelete='CASCADE'), primary_key=True)
     comment_id = Column(String, ForeignKey(FacebookCommentEntry.id, ondelete='CASCADE'), primary_key=True)
 

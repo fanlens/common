@@ -29,4 +29,5 @@ class Model(Base):
     )
 
     def __repr__(self):
-        return "<ModelEntry(id='%s', data='%s', meta='%s)>" % (self.id, self.data, self.meta)
+        return "<Model(id='%s', tagset_id='%d', user_id='%d', score='%s', trained_ts='%s', params='%s')>" % (
+            self.id, self.tagset_id, self.user_id, self.score, self.trained_ts, self.params)
