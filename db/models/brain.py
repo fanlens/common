@@ -9,13 +9,12 @@ from sqlalchemy.dialects.postgres import JSONB
 from db import Base
 from db.models import SCHEMA_META
 from db.models.tags import TagSet
-from db.models.users import User
 
 
 class Model(Base):
     __tablename__ = "models"
     tagset_id = Column(Integer, ForeignKey(TagSet.id, ondelete='CASCADE'), nullable=False)
-    user_id = Column(Integer, ForeignKey(User.id, ondelete='CASCADE'), nullable=False)
+    user_id = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
 
     id = Column(String, primary_key=True)
     params = Column(JSONB, nullable=False)

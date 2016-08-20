@@ -7,6 +7,7 @@ from sqlalchemy.orm import relationship, backref
 from db import Base
 from db.models.source import Source
 from db.models.tags import TagSet
+from db.models.brain import Model
 
 
 class Role(Base):
@@ -26,6 +27,7 @@ class User(Base):
     roles = relationship(Role, secondary='roles_users', backref=backref('users', lazy='dynamic'))
     sources = relationship(Source, secondary='user_source', backref=backref('users', lazy='dynamic'))
     tagsets = relationship(TagSet, secondary='user_tagset', backref=backref('users', lazy='dynamic'))
+    models = relationship(Model)
 
 
 class RolesUsers(Base):
