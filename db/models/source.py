@@ -12,7 +12,7 @@ class Source(Base):
     __tablename__ = "sources"
     id = Column(Integer, primary_key=True)
 
-    type = Column(Enum('facebook', 'twitter', 'crunchbase', name='source_type', schema=SCHEMA_META), nullable=False)
+    type = Column(Enum('facebook', 'twitter', 'crunchbase', 'generic', name='source_type', schema=SCHEMA_META), nullable=False)
     external_id = Column(BigInteger, nullable=False)
     slug = Column(String, nullable=True)
     title = Column(String, nullable=True)
