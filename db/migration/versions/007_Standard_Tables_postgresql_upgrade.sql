@@ -63,6 +63,7 @@ CREATE TABLE public.roles_users
 (
   user_id integer,
   role_id integer,
+  CONSTRAINT prim_key_roles_users PRIMARY KEY (user_id, role_id),
   CONSTRAINT roles_users_role_id_fkey FOREIGN KEY (role_id)
       REFERENCES public.role (id) MATCH SIMPLE
       ON UPDATE NO ACTION ON DELETE NO ACTION,

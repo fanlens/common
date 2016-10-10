@@ -3,30 +3,46 @@
 
 import datetime
 
-from sqlalchemy import Column, Integer, Float, DateTime, ForeignKey, String, Index
-from sqlalchemy.dialects.postgres import JSONB
+from sqlalchemy import Column, Integer, Float, DateTime, ForeignKey, Index, LargeBinary
+from sqlalchemy.orm import relationship, backref
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 
 from db import Base
-from db.models import SCHEMA_META
-from db.models.tags import TagSet
+from db.models.users import User
+from db.models.activities import SCHEMA, Tag, TagSet, TagTagSet
 
 
 class Model(Base):
-    __tablename__ = "models"
+    __tablename__ = "model"
     tagset_id = Column(Integer, ForeignKey(TagSet.id, ondelete='CASCADE'), nullable=False)
-    user_id = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
+    user_id = Column(Integer, ForeignKey(User.id, ondelete='CASCADE'), nullable=False)
 
-    id = Column(String, primary_key=True)
+    id = Column(UUID, primary_key=True)
     params = Column(JSONB, nullable=False)
     score = Column(Float, nullable=False)
     trained_ts = Column(DateTime(timezone=True), nullable=False, default=datetime.datetime.now())
 
+    tags = relationship(Tag,
+                        secondary=TagTagSet.__table__,
+                        primaryjoin=(tagset_id == TagTagSet.tagset_id),
+                        collection_class=set)
+    user = relationship(User, backref=backref('models', lazy='dynamic'))
+
     __table_args__ = (
         Index(__tablename__ + "_user_index", user_id),
         Index(__tablename__ + "_tagset_index", tagset_id),
-        {'schema': SCHEMA_META}
+        {'schema': SCHEMA}
     )
 
-    def __repr__(self):
-        return "<Model(id='%s', tagset_id='%d', user_id='%d', score='%s', trained_ts='%s', params='%s')>" % (
-            self.id, self.tagset_id, self.user_id, self.score, self.trained_ts, self.params)
+
+class ModelFile(Base):
+    __tablename__ = "modelfile"
+
+    model_id = Column(UUID, ForeignKey(Model.id, ondelete='CASCADE'), nullable=False, primary_key=True)
+    file = Column(LargeBinary, nullable=False)
+
+    model = relationship(Model, backref=backref('file', lazy='select', uselist=False))
+
+    __table_args__ = (
+        {'schema': SCHEMA}
+    )
