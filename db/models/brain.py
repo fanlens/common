@@ -2,14 +2,15 @@
 # -*- coding: utf-8 -*-
 
 import datetime
+import uuid
 
-from sqlalchemy import Column, Integer, Float, DateTime, ForeignKey, Index, LargeBinary
+from sqlalchemy import Column, Integer, Float, DateTime, ForeignKey, Index, LargeBinary, UniqueConstraint
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 
 from db import Base
 from db.models.users import User
-from db.models.activities import SCHEMA, Tag, TagSet, TagTagSet
+from db.models.activities import SCHEMA, Tag, TagSet, TagTagSet, Source
 
 
 class Model(Base):
@@ -17,16 +18,17 @@ class Model(Base):
     tagset_id = Column(Integer, ForeignKey(TagSet.id, ondelete='CASCADE'), nullable=False)
     user_id = Column(Integer, ForeignKey(User.id, ondelete='CASCADE'), nullable=False)
 
-    id = Column(UUID, primary_key=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid1)
     params = Column(JSONB, nullable=False)
     score = Column(Float, nullable=False)
-    trained_ts = Column(DateTime(timezone=True), nullable=False, default=datetime.datetime.now())
+    trained_ts = Column(DateTime(timezone=True), nullable=False, default=datetime.datetime.utcnow)
 
     tags = relationship(Tag,
                         secondary=TagTagSet.__table__,
                         primaryjoin=(tagset_id == TagTagSet.tagset_id),
                         collection_class=set)
     user = relationship(User, backref=backref('models', lazy='dynamic'))
+    sources = relationship(Source, secondary=SCHEMA + '.source_model', lazy='dynamic')
 
     __table_args__ = (
         Index(__tablename__ + "_user_index", user_id),
@@ -35,10 +37,23 @@ class Model(Base):
     )
 
 
+class ModelSources(Base):
+    __tablename__ = 'source_model'
+
+    id = Column(Integer, primary_key=True)
+    source_id = Column(Integer, ForeignKey(Source.id, ondelete='CASCADE'), nullable=False)
+    model_id = Column(UUID(as_uuid=True), ForeignKey(Model.id, ondelete='CASCADE'), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint(source_id, model_id),
+        {'schema': SCHEMA},
+    )
+
+
 class ModelFile(Base):
     __tablename__ = "modelfile"
 
-    model_id = Column(UUID, ForeignKey(Model.id, ondelete='CASCADE'), nullable=False, primary_key=True)
+    model_id = Column(UUID(as_uuid=True), ForeignKey(Model.id, ondelete='CASCADE'), nullable=False, primary_key=True)
     file = Column(LargeBinary, nullable=False)
 
     model = relationship(Model, backref=backref('file', lazy='select', uselist=False))
@@ -46,3 +61,22 @@ class ModelFile(Base):
     __table_args__ = (
         {'schema': SCHEMA}
     )
+
+
+class Job(Base):
+    __tablename__ = "job"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid1)
+    user_id = Column(Integer, ForeignKey(User.id, ondelete='CASCADE'), nullable=False)
+    started = Column(DateTime(timezone=True), nullable=False, default=datetime.datetime.utcnow)
+
+    user = relationship(User, backref=backref('jobs', lazy='dynamic'), enable_typechecks=False)
+
+    __table_args__ = (
+        UniqueConstraint(user_id, id),
+        {'schema': SCHEMA}
+    )
+
+if __name__ == "__main__":
+    from db import DB
+    Base.metadata.create_all(DB().engine)
