@@ -10,7 +10,7 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID
 
 from db import Base
 from db.models.users import User
-from db.models.activities import SCHEMA, Tag, TagSet, TagTagSet, Source
+from db.models.activities import SCHEMA, Tag, TagSet, TagTagSet, Source, Data
 
 
 class Model(Base):
@@ -26,9 +26,12 @@ class Model(Base):
     tags = relationship(Tag,
                         secondary=TagTagSet.__table__,
                         primaryjoin=(tagset_id == TagTagSet.tagset_id),
-                        collection_class=set)
+                        lazy='dynamic')
     user = relationship(User, backref=backref('models', lazy='dynamic'))
-    sources = relationship(Source, secondary=SCHEMA + '.source_model', lazy='dynamic')
+    sources = relationship(Source,
+                           secondary=SCHEMA + '.source_model',
+                           backref=backref('models', lazy='dynamic'),
+                           lazy='dynamic')
 
     __table_args__ = (
         Index(__tablename__ + "_user_index", user_id),
@@ -77,6 +80,28 @@ class Job(Base):
         {'schema': SCHEMA}
     )
 
+
+class Prediction(Base):
+    __tablename__ = "prediction"
+
+    id = Column(Integer, primary_key=True)
+    model_id = Column(UUID(as_uuid=True), ForeignKey(Model.id, ondelete='CASCADE'), nullable=False)
+    data_id = Column(Integer, ForeignKey(Data.id, ondelete='CASCADE'), nullable=False)
+
+    prediction = Column(JSONB, nullable=False)
+
+    model = relationship(Model, backref=backref('prediction', lazy='dynamic'))
+    data = relationship(Data, backref=backref('prediction', lazy='select', uselist=False, cascade='all, delete-orphan'))
+
+    __table_args__ = (
+        UniqueConstraint(data_id, model_id),
+        Index(__tablename__ + "_model_index", model_id),
+        Index(__tablename__ + "_data_index", data_id),
+        {'schema': SCHEMA}
+    )
+
+
 if __name__ == "__main__":
     from db import DB
+
     Base.metadata.create_all(DB().engine)

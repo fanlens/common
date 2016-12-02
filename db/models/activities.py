@@ -52,6 +52,9 @@ class Data(Base):
     data = Column(JSONB, nullable=False)
 
     source = relationship(Source, backref=backref('data', lazy='dynamic'), uselist=False)
+    user = relationship(User, secondary=Source.__table__,
+                        backref=backref('data', lazy='dynamic'),
+                        uselist=False)
 
     __table_args__ = (
         UniqueConstraint(object_id, source_id),

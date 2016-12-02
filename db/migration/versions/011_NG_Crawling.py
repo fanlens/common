@@ -297,6 +297,7 @@ class ModelFile(Base):
         {'schema': SCHEMA}
     )
 
+
 class Job(Base):
     __tablename__ = "job"
 
@@ -307,6 +308,26 @@ class Job(Base):
 
     __table_args__ = (
         UniqueConstraint(user_id, id),
+        {'schema': SCHEMA}
+    )
+
+
+class Prediction(Base):
+    __tablename__ = "prediction"
+
+    id = Column(Integer, primary_key=True)
+    model_id = Column(UUID(as_uuid=True), ForeignKey(Model.id, ondelete='CASCADE'), nullable=False)
+    data_id = Column(Integer, ForeignKey(Data.id, ondelete='CASCADE'), nullable=False)
+
+    prediction = Column(JSONB, nullable=False)
+
+    model = relationship(Model, backref=backref('prediction', lazy='select', uselist=False))
+    data = relationship(Data, backref=backref('prediction', lazy='select', uselist=False))
+
+    __table_args__ = (
+        UniqueConstraint(data_id, model_id),
+        Index(__tablename__ + "_model_index", model_id),
+        Index(__tablename__ + "_data_index", data_id),
         {'schema': SCHEMA}
     )
 
@@ -365,6 +386,9 @@ GRANT UPDATE, INSERT, DELETE ON TABLE activity.source_model TO "write.data";
 GRANT ALL ON TABLE activity.job TO fanlens;
 GRANT SELECT ON TABLE activity.job TO "read.data";
 GRANT UPDATE, INSERT, DELETE ON TABLE activity.job TO "write.data";
+GRANT ALL ON TABLE activity.prediction TO fanlens;
+GRANT SELECT ON TABLE activity.prediction TO "read.data";
+GRANT UPDATE, INSERT, DELETE ON TABLE activity.prediction TO "write.data";
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA activity to "write.data";
 """)
 
