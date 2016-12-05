@@ -122,6 +122,21 @@ class Text(Base):
     )
 
 
+class TagSet(Base):
+    __tablename__ = 'tagset'
+
+    id = Column(Integer, primary_key=True)
+    title = Column(String(length=256), nullable=False)
+    user_id = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
+
+    user = relationship('user', backref=backref('tagsets', lazy='dynamic'))
+
+    __table_args__ = (
+        UniqueConstraint(user_id, title),
+        {'schema': SCHEMA},
+    )
+
+
 class Tag(Base):
     __tablename__ = 'tag'
 
@@ -164,21 +179,6 @@ class Tagging(Base):
 
     __table_args__ = (
         UniqueConstraint(data_id, tag_id),
-        {'schema': SCHEMA},
-    )
-
-
-class TagSet(Base):
-    __tablename__ = 'tagset'
-
-    id = Column(Integer, primary_key=True)
-    title = Column(String(length=256), nullable=False)
-    user_id = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
-
-    user = relationship('user', backref=backref('tagsets', lazy='dynamic'))
-
-    __table_args__ = (
-        UniqueConstraint(user_id, title),
         {'schema': SCHEMA},
     )
 
