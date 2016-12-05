@@ -29,11 +29,28 @@ class Source(Base):
     type = Column(Enum(Type, name='type', schema=SCHEMA), nullable=False)
     uri = Column(String, nullable=False)
     slug = Column(String, nullable=False)
-    user_id = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
 
-    users = relationship('user', backref=backref('sources', lazy='dynamic', collection_class=set), collection_class=set)
+    # disabled typechecks to work on webuser
+    user = relationship('user',
+                        secondary=SCHEMA + '.source_user',
+                        backref=backref('sources', lazy='dynamic', cascade='all, delete-orphan'),
+                        uselist=False,
+                        enable_typechecks=False)
 
     __table_args__ = (
+        {'schema': SCHEMA},
+    )
+
+
+class SourceUser(Base):
+    __tablename__ = 'source_user'
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
+    source_id = Column(Integer, ForeignKey(Source.id, ondelete='CASCADE'), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint(user_id, source_id),
         {'schema': SCHEMA},
     )
 
@@ -49,6 +66,10 @@ class Data(Base):
     data = Column(JSONB, nullable=False)
 
     source = relationship(Source, backref=backref('data', lazy='dynamic'))
+    users = relationship('user',
+                         primaryjoin=(SourceUser.source_id == source_id & SourceUser.user_id == 'user.id'),
+                         secondary=SourceUser.__table__,
+                         backref=backref('data', lazy='dynamic'))
 
     __table_args__ = (
         UniqueConstraint(object_id, source_id),
@@ -66,6 +87,7 @@ class Time(Base):
     data = relationship(Data, backref=backref('time', lazy='dynamic'))
 
     __table_args__ = (
+        UniqueConstraint(data_id),
         {'schema': SCHEMA},
     )
 
@@ -80,6 +102,7 @@ class Fingerprint(Base):
     data = relationship(Data, backref=backref('fingerprint', lazy='dynamic'))
 
     __table_args__ = (
+        UniqueConstraint(data_id),
         {'schema': SCHEMA},
     )
 
@@ -94,6 +117,7 @@ class Text(Base):
     data = relationship(Data, backref=backref('text', lazy='select', uselist=False))
 
     __table_args__ = (
+        UniqueConstraint(data_id),
         {'schema': SCHEMA},
     )
 
@@ -104,6 +128,26 @@ class Tag(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
     tag = Column(String(length=64), nullable=False)
+
+    data = relationship(Data, secondary=SCHEMA + '.tagging',
+                        backref=backref('tags', lazy='select', collection_class=set, cascade='all'),
+                        lazy='dynamic')
+    user = relationship('user', backref=backref('tags', lazy='select', collection_class=set))
+    tagsets = relationship(TagSet, secondary=SCHEMA + '.tag_tagset',
+                           backref=backref('tags', lazy='select', collection_class=set))
+
+    def __eq__(self, other):
+        if isinstance(other, Tag):
+            return ((self.tag == other.tag) and
+                    (self.user_id == other.user_id))
+        else:
+            return False
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __hash__(self):
+        return hash("Tag(%s,%s)" % (self.user_id, self.tag))
 
     __table_args__ = (
         UniqueConstraint(user_id, tag),
@@ -244,6 +288,7 @@ class Language(Base):
     data = relationship(Data, backref=backref('language', lazy='dynamic'))
 
     __table_args__ = (
+        UniqueConstraint(data_id),
         {'schema': SCHEMA},
     )
 
@@ -307,7 +352,7 @@ class Job(Base):
     user = relationship('user', backref=backref('jobs', lazy='dynamic'))
 
     __table_args__ = (
-        UniqueConstraint(user_id, id),
+        Index(__tablename__ + "_user_index", user_id),
         {'schema': SCHEMA}
     )
 
@@ -326,8 +371,6 @@ class Prediction(Base):
 
     __table_args__ = (
         UniqueConstraint(data_id, model_id),
-        Index(__tablename__ + "_model_index", model_id),
-        Index(__tablename__ + "_data_index", data_id),
         {'schema': SCHEMA}
     )
 
@@ -389,6 +432,9 @@ GRANT UPDATE, INSERT, DELETE ON TABLE activity.job TO "write.data";
 GRANT ALL ON TABLE activity.prediction TO fanlens;
 GRANT SELECT ON TABLE activity.prediction TO "read.data";
 GRANT UPDATE, INSERT, DELETE ON TABLE activity.prediction TO "write.data";
+GRANT ALL ON TABLE activity.source_user TO fanlens;
+GRANT SELECT ON TABLE activity.source_user TO "read.data";
+GRANT UPDATE, INSERT, DELETE ON TABLE activity.source_user TO "write.data";
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA activity to "write.data";
 """)
 

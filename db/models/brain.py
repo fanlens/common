@@ -76,7 +76,7 @@ class Job(Base):
     user = relationship(User, backref=backref('jobs', lazy='dynamic'), enable_typechecks=False)
 
     __table_args__ = (
-        UniqueConstraint(user_id, id),
+        Index(__tablename__ + "_user_index", user_id),
         {'schema': SCHEMA}
     )
 
@@ -95,8 +95,6 @@ class Prediction(Base):
 
     __table_args__ = (
         UniqueConstraint(data_id, model_id),
-        Index(__tablename__ + "_model_index", model_id),
-        Index(__tablename__ + "_data_index", data_id),
         {'schema': SCHEMA}
     )
 

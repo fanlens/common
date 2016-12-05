@@ -3,7 +3,7 @@
 
 import datetime
 import enum
-from sqlalchemy import Column, Integer, String, Enum, DateTime, ForeignKey, UniqueConstraint, Float, Index
+from sqlalchemy import Column, Integer, String, Enum, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.dialects.postgresql import JSONB, ARRAY
 
@@ -28,15 +28,28 @@ class Source(Base):
     type = Column(Enum(Type, name='type', schema=SCHEMA), nullable=False)
     uri = Column(String, nullable=False)
     slug = Column(String, nullable=False)
-    user_id = Column(Integer, ForeignKey(User.id, ondelete='CASCADE'), nullable=False)
 
     # disabled typechecks to work on webuser
     user = relationship(User,
-                        backref=backref('sources', lazy='dynamic', cascade='all, delete-orphan'),
+                        secondary=SCHEMA + '.source_user',
+                        backref=backref('sources', lazy='dynamic', cascade='all, delete-orphan', single_parent=True),
                         uselist=False,
                         enable_typechecks=False)
 
     __table_args__ = (
+        {'schema': SCHEMA},
+    )
+
+
+class SourceUser(Base):
+    __tablename__ = 'source_user'
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey(User.id, ondelete='CASCADE'), nullable=False)
+    source_id = Column(Integer, ForeignKey(Source.id, ondelete='CASCADE'), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint(user_id, source_id),
         {'schema': SCHEMA},
     )
 
@@ -52,9 +65,10 @@ class Data(Base):
     data = Column(JSONB, nullable=False)
 
     source = relationship(Source, backref=backref('data', lazy='dynamic'), uselist=False)
-    user = relationship(User, secondary=Source.__table__,
-                        backref=backref('data', lazy='dynamic'),
-                        uselist=False)
+    users = relationship(User,
+                         primaryjoin=(SourceUser.source_id == source_id & SourceUser.user_id == User.id),
+                         secondary=SourceUser.__table__,
+                         backref=backref('data', lazy='dynamic'))
 
     __table_args__ = (
         UniqueConstraint(object_id, source_id),
@@ -72,6 +86,7 @@ class Text(Base):
     data = relationship(Data, backref=backref('text', lazy='select', uselist=False))
 
     __table_args__ = (
+        UniqueConstraint(data_id),
         {'schema': SCHEMA},
     )
 
@@ -86,6 +101,7 @@ class Time(Base):
     data = relationship(Data, backref=backref('time', lazy='select', uselist=False))
 
     __table_args__ = (
+        UniqueConstraint(data_id),
         {'schema': SCHEMA},
     )
 
@@ -100,6 +116,7 @@ class Fingerprint(Base):
     data = relationship(Data, backref=backref('fingerprint', lazy='select', uselist=False))
 
     __table_args__ = (
+        UniqueConstraint(data_id),
         {'schema': SCHEMA},
     )
 
@@ -273,5 +290,12 @@ class Language(Base):
     data = relationship(Data, backref=backref('language', lazy='select', uselist=False))
 
     __table_args__ = (
+        UniqueConstraint(data_id),
         {'schema': SCHEMA},
     )
+
+
+if __name__ == "__main__":
+    from db import DB
+
+    Base.metadata.create_all(DB().engine)
