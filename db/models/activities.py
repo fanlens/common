@@ -66,7 +66,7 @@ class Data(Base):
 
     source = relationship(Source, backref=backref('data', lazy='dynamic'), uselist=False)
     users = relationship(User,
-                         primaryjoin=(SourceUser.source_id == source_id & SourceUser.user_id == User.id),
+                         primaryjoin=((SourceUser.source_id == source_id) & (SourceUser.user_id == User.id)),
                          secondary=SourceUser.__table__,
                          backref=backref('data', lazy='dynamic'))
 
