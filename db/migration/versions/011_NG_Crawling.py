@@ -348,6 +348,7 @@ class Job(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True)
     user_id = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
+    started = Column(DateTime(timezone=True), nullable=False, default=datetime.datetime.utcnow)
 
     user = relationship('user', backref=backref('jobs', lazy='dynamic'))
 
@@ -411,6 +412,9 @@ GRANT UPDATE, INSERT, DELETE ON TABLE activity.tag_tagset TO "write.data";
 GRANT ALL ON TABLE activity.tagging TO fanlens;
 GRANT SELECT ON TABLE activity.tagging TO "read.data";
 GRANT UPDATE, INSERT, DELETE ON TABLE activity.tagging TO "write.data";
+GRANT ALL ON TABLE activity.text TO fanlens;
+GRANT SELECT ON TABLE activity.text TO "read.data";
+GRANT UPDATE, INSERT, DELETE ON TABLE activity.text TO "write.data";
 GRANT ALL ON TABLE activity.language TO fanlens;
 GRANT SELECT ON TABLE activity.language TO "read.data";
 GRANT UPDATE, INSERT, DELETE ON TABLE activity.language TO "write.data";
