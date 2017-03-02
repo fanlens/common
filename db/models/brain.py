@@ -23,6 +23,7 @@ class Model(Base):
     score = Column(Float, nullable=False)
     trained_ts = Column(DateTime(timezone=True), nullable=False, default=datetime.datetime.utcnow)
 
+    tagset = relationship(TagSet, backref=backref('models', lazy='dynamic'))
     tags = relationship(Tag,
                         secondary=TagTagSet.__table__,
                         primaryjoin=(tagset_id == TagTagSet.tagset_id),
