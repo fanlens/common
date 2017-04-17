@@ -1,202 +1,12 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-import datetime
 import enum
 
-from db import Base
-from db.models.users import User
-from sqlalchemy import Column, Integer, String, Enum, DateTime, ForeignKey, UniqueConstraint
-from sqlalchemy.dialects.postgresql import JSONB, ARRAY
-from sqlalchemy.orm import relationship, backref
+from migrate import *
+from sqlalchemy import Column, Integer, UniqueConstraint, String, ForeignKey, Enum, Table, text
+from sqlalchemy.ext.declarative import declarative_base
 
+Base = declarative_base()
 SCHEMA = 'activity'
-
-
-class Type(enum.Enum):
-    facebook = 'facebook'
-    twitter = 'twitter'
-    crunchbase = 'crunchbase'
-    generic = 'generic'
-
-
-class Source(Base):
-    __tablename__ = 'source'
-
-    id = Column(Integer, primary_key=True)
-
-    type = Column(Enum(Type, name='type', schema=SCHEMA), nullable=False)
-    uri = Column(String, nullable=False)
-    slug = Column(String, nullable=False)
-
-    # disabled typechecks to work on webuser
-    user = relationship(User,
-                        secondary=SCHEMA + '.source_user',
-                        backref=backref('sources', lazy='dynamic', cascade='all, delete-orphan', single_parent=True),
-                        uselist=False,
-                        enable_typechecks=False)
-
-    __table_args__ = (
-        {'schema': SCHEMA},
-    )
-
-
-class SourceUser(Base):
-    __tablename__ = 'source_user'
-
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey(User.id, ondelete='CASCADE'), nullable=False)
-    source_id = Column(Integer, ForeignKey(Source.id, ondelete='CASCADE'), nullable=False)
-
-    __table_args__ = (
-        UniqueConstraint(user_id, source_id),
-        {'schema': SCHEMA},
-    )
-
-
-class Data(Base):
-    __tablename__ = 'data'
-
-    id = Column(Integer, primary_key=True)
-
-    object_id = Column(String, nullable=False)
-    source_id = Column(Integer, ForeignKey(Source.id, ondelete='CASCADE'), nullable=False)
-
-    data = Column(JSONB, nullable=False)
-
-    source = relationship(Source, backref=backref('data', lazy='dynamic'), uselist=False)
-    users = relationship(User,
-                         primaryjoin=((SourceUser.source_id == source_id) & (SourceUser.user_id == User.id)),
-                         secondary=SourceUser.__table__,
-                         backref=backref('data', lazy='dynamic'))
-
-    __table_args__ = (
-        UniqueConstraint(object_id, source_id),
-        {'schema': SCHEMA},
-    )
-
-
-class Text(Base):
-    __tablename__ = 'text'
-
-    id = Column(Integer, primary_key=True)
-    data_id = Column(Integer, ForeignKey(Data.id, ondelete='CASCADE'), nullable=False, unique=True)
-    text = Column(String, nullable=False)
-
-    data = relationship(Data, backref=backref('text', lazy='select', uselist=False))
-
-    __table_args__ = (
-        UniqueConstraint(data_id),
-        {'schema': SCHEMA},
-    )
-
-
-class Time(Base):
-    __tablename__ = 'time'
-
-    id = Column(Integer, primary_key=True)
-    data_id = Column(Integer, ForeignKey(Data.id, ondelete='CASCADE'), nullable=False, unique=True)
-    time = Column(DateTime(timezone=True), default=datetime.datetime.utcnow, nullable=False)
-
-    data = relationship(Data, backref=backref('time', lazy='select', uselist=False))
-
-    __table_args__ = (
-        UniqueConstraint(data_id),
-        {'schema': SCHEMA},
-    )
-
-
-class Fingerprint(Base):
-    __tablename__ = 'fingerprint'
-
-    id = Column(Integer, primary_key=True)
-    data_id = Column(Integer, ForeignKey(Data.id, ondelete='CASCADE'), nullable=False, unique=True)
-    fingerprint = Column(ARRAY(Integer), nullable=False)
-
-    data = relationship(Data, backref=backref('fingerprint', lazy='select', uselist=False))
-
-    __table_args__ = (
-        UniqueConstraint(data_id),
-        {'schema': SCHEMA},
-    )
-
-
-class TagSet(Base):
-    __tablename__ = 'tagset'
-
-    id = Column(Integer, primary_key=True)
-    title = Column(String(length=256), nullable=False)
-    user_id = Column(Integer, ForeignKey(User.id, ondelete='CASCADE'), nullable=False)
-
-    # disabled typechecks to work on webuser
-    user = relationship(User, backref=backref('tagsets', lazy='dynamic'), enable_typechecks=False)
-
-    __table_args__ = (
-        UniqueConstraint(user_id, title),
-        {'schema': SCHEMA},
-    )
-
-
-class Tag(Base):
-    __tablename__ = 'tag'
-
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey(User.id, ondelete='CASCADE'), nullable=False)
-    tag = Column(String(length=64), nullable=False)
-
-    data = relationship(Data, secondary=SCHEMA + '.tagging',
-                        backref=backref('tags', lazy='select', collection_class=set, cascade='all'),
-                        lazy='dynamic')
-    user = relationship(User, backref=backref('tags', lazy='select', collection_class=set))
-    tagsets = relationship(TagSet, secondary=SCHEMA + '.tag_tagset',
-                           backref=backref('tags', lazy='select', collection_class=set))
-
-    def __eq__(self, other):
-        if isinstance(other, Tag):
-            return ((self.tag == other.tag) and
-                    (self.user_id == other.user_id))
-        else:
-            return False
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    def __hash__(self):
-        return hash("Tag(%s,%s)" % (self.user_id, self.tag))
-
-    __table_args__ = (
-        UniqueConstraint(user_id, tag),
-        {'schema': SCHEMA},
-    )
-
-
-class Tagging(Base):
-    __tablename__ = 'tagging'
-
-    id = Column(Integer, primary_key=True)
-    data_id = Column(Integer, ForeignKey(Data.id, ondelete='CASCADE'), nullable=False)
-    tag_id = Column(Integer, ForeignKey(Tag.id, ondelete='CASCADE'), nullable=False)
-
-    tag = relationship(Tag)
-
-    __table_args__ = (
-        UniqueConstraint(data_id, tag_id),
-        {'schema': SCHEMA},
-    )
-
-
-class TagTagSet(Base):
-    __tablename__ = 'tag_tagset'
-
-    id = Column(Integer, primary_key=True)
-    tag_id = Column(Integer, ForeignKey(Tag.id, ondelete='CASCADE'), nullable=False)
-    tagset_id = Column(Integer, ForeignKey(TagSet.id, ondelete='CASCADE'), nullable=False)
-
-    __table_args__ = (
-        UniqueConstraint(tag_id, tagset_id),
-        {'schema': SCHEMA},
-    )
-
+TEXT_TABLE_STR = '%s.text' % SCHEMA
 
 # auto created from pycld2, python -mbrain.feature.language_detect
 Lang = enum.Enum('Lang',
@@ -279,31 +89,13 @@ Lang = enum.Enum('Lang',
                   'xx-Runr': 'X_Runic', 'de': 'GERMAN', 'xx-Latn': 'X_Latin', 'lg': 'GANDA'})
 
 
-class Language(Base):
-    __tablename__ = 'language'
-
-    id = Column(Integer, primary_key=True)
-    data_id = Column(Integer, ForeignKey(Data.id, ondelete='CASCADE'), nullable=False, unique=True)
-    language = Column(Enum(Lang, name='lang', schema=SCHEMA),
-                      nullable=False)
-
-    data = relationship(Data, backref=backref('language', lazy='select', uselist=False))
-
-    __table_args__ = (
-        UniqueConstraint(data_id),
-        {'schema': SCHEMA},
-    )
-
-
 class Translation(Base):
     __tablename__ = 'translation'
 
     id = Column(Integer, primary_key=True)
-    text_id = Column(Integer, ForeignKey(Text.id, ondelete='CASCADE'), nullable=False)
+    text_id = Column(Integer, ForeignKey('%s.id' % TEXT_TABLE_STR, ondelete='CASCADE'), nullable=False)
     translation = Column(String, nullable=False)
     target_language = Column(Enum(Lang, name='lang', schema=SCHEMA), nullable=False)
-
-    text = relationship(Text, backref=backref('translations', lazy='select'))
 
     __table_args__ = (
         UniqueConstraint(text_id, target_language),
@@ -311,7 +103,23 @@ class Translation(Base):
     )
 
 
-if __name__ == "__main__":
-    from db import DB
+grants = text("""
+    GRANT ALL ON TABLE activity.translation TO fanlens;
+    GRANT SELECT ON TABLE activity.translation TO "read.data";
+    GRANT UPDATE, INSERT, DELETE ON TABLE activity.translation TO "write.data";
+    
+    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA activity to "write.data";
+""")
 
-    Base.metadata.create_all(DB().engine)
+
+def upgrade(migrate_engine):
+    Table('text', Base.metadata, schema=SCHEMA, autoload=True, autoload_with=migrate_engine)
+    Base.metadata.create_all(migrate_engine)
+    with migrate_engine.begin() as transaction:
+        transaction.execute(grants)
+
+
+def downgrade(migrate_engine):
+    Table('text', Base.metadata, schema=SCHEMA, autoload=True, autoload_with=migrate_engine)
+    with migrate_engine.begin() as transaction:
+        transaction.execute(text('''DROP TABLE %s.%s''' % (SCHEMA, Translation.__tablename__)))
