@@ -1,17 +1,16 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Index, text
-from sqlalchemy.dialects.postgres import JSONB
+from sqlalchemy import Column, Integer, String, ForeignKey, Index, text, Table
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.declarative import declarative_base
-from db.models import SCHEMA_META
-from db.models.tags import TagSet
-from db.models.users import User
+
+SCHEMA_META = 'meta'
 
 Base = declarative_base()
 
 
 class Model(Base):
     __tablename__ = "models"
-    tagset_id = Column(Integer, ForeignKey(TagSet.id, ondelete='CASCADE'), nullable=False)
-    user_id = Column(Integer, ForeignKey(User.id, ondelete='CASCADE'), nullable=False)
+    tagset_id = Column(Integer, ForeignKey('meta.tagset.id', ondelete='CASCADE'), nullable=False)
+    user_id = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
 
     id = Column(String, primary_key=True)
     params = Column(JSONB, nullable=False)
@@ -34,6 +33,8 @@ GRANT UPDATE, INSERT, DELETE ON TABLE meta.models TO "write.meta";
 
 
 def upgrade(migrate_engine):
+    Table('tagset', Base.metadata, schema=SCHEMA_META, autoload=True, autoload_with=migrate_engine)
+    Table('user', Base.metadata, autoload=True, autoload_with=migrate_engine)
     Base.metadata.create_all(migrate_engine)
     with migrate_engine.begin() as transaction:
         transaction.execute(grants)
