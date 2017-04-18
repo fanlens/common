@@ -9,8 +9,8 @@ Base = declarative_base()
 
 class Model(Base):
     __tablename__ = "models"
-    tagset_id = Column(Integer, ForeignKey('meta.tagset.id', ondelete='CASCADE'), nullable=False)
-    user_id = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
+    tagset_id = Column(Integer, ForeignKey('meta.tagsets.id', ondelete='CASCADE'), nullable=False)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
 
     id = Column(String, primary_key=True)
     params = Column(JSONB, nullable=False)
@@ -33,7 +33,7 @@ GRANT UPDATE, INSERT, DELETE ON TABLE meta.models TO "write.meta";
 
 
 def upgrade(migrate_engine):
-    Table('tagset', Base.metadata, schema=SCHEMA_META, autoload=True, autoload_with=migrate_engine)
+    Table('tagsets', Base.metadata, schema=SCHEMA_META, autoload=True, autoload_with=migrate_engine)
     Table('user', Base.metadata, autoload=True, autoload_with=migrate_engine)
     Base.metadata.create_all(migrate_engine)
     with migrate_engine.begin() as transaction:
