@@ -303,7 +303,7 @@ class Translation(Base):
     translation = Column(String, nullable=False)
     target_language = Column(Enum(Lang, name='lang', schema=SCHEMA), nullable=False)
 
-    text = relationship(Text, backref=backref('translations', lazy='select'))
+    text = relationship(Text, backref=backref('translations', lazy='dynamic'))
 
     __table_args__ = (
         UniqueConstraint(text_id, target_language),
