@@ -177,7 +177,8 @@ class Tagging(Base):
     data_id = Column(Integer, ForeignKey(Data.id, ondelete='CASCADE'), nullable=False)
     tag_id = Column(Integer, ForeignKey(Tag.id, ondelete='CASCADE'), nullable=False)
 
-    tag = relationship(Tag)
+    data = relationship(Data)
+    tag = relationship(Tag, backref=backref('taggings', lazy='dynamic'))
 
     __table_args__ = (
         UniqueConstraint(data_id, tag_id),
