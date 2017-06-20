@@ -3,20 +3,19 @@
 
 """the db module is responsible for managing the database connections it's based on sqlalchemy"""
 
-import typing
-import sqlalchemy
-import threading
 import logging
-from sqlalchemy import func
-from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy.orm.attributes import flag_modified
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.dialects import postgresql
+import threading
+import typing
 from contextlib import contextmanager
 
+import sqlalchemy
 from config.env import Environment
-
+from sqlalchemy import func
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy.sql.expression import Insert
 
 ON_CONFLICT_DO_NOTHING = 'ON CONFLICT DO NOTHING'
@@ -71,11 +70,15 @@ def insert_or_ignore(session: Session, entry: declarative_base, flush=False):
         session.flush()
 
 
-def connect(username, password, database, host='localhost', port=5432):
+def engine(username, password, database, host='localhost', port=5432, **kwargs):
     """:return: a connection and a metadata object"""
     url = 'postgresql://{}:{}@{}:{}/{}'.format(username, password, host, port, database)
-    engine = sqlalchemy.create_engine(url, client_encoding='utf8')
+    engine = sqlalchemy.create_engine(url, client_encoding='utf8', **kwargs)
     return engine
+
+
+def default_engine(**kwargs):
+    return engine(**Environment("DB"))
 
 
 Base = declarative_base()
@@ -91,10 +94,9 @@ class DB(object):
     @classmethod
     def init_db(cls, force=True):
         """lazy instantiate the _db object"""
-        # todo threadlocal
         if force or cls._db.engine is None:
-            cls._db.engine = connect(**Environment("DB"))
-            cls._db.Session = sessionmaker(bind=cls._db.engine, autoflush=True)
+            cls._db.engine = default_engine()
+            cls._db.Session = sessionmaker(bind=cls._db.engine, autocommit=False, autoflush=True)
             cls._db.AutoSession = sessionmaker(bind=cls._db.engine, autocommit=True, autoflush=True)
 
     def __init__(self):

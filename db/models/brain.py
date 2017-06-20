@@ -4,13 +4,12 @@
 import datetime
 import uuid
 
-from sqlalchemy import Column, Integer, Float, DateTime, ForeignKey, Index, LargeBinary, UniqueConstraint
-from sqlalchemy.orm import relationship, backref
-from sqlalchemy.dialects.postgresql import JSONB, UUID
-
 from db import Base
-from db.models.users import User
 from db.models.activities import SCHEMA, Tag, TagSet, TagTagSet, Source, Data
+from db.models.users import User
+from sqlalchemy import Column, Integer, Float, DateTime, ForeignKey, Index, UniqueConstraint
+from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.orm import relationship, backref
 
 
 class Model(Base):
@@ -51,34 +50,6 @@ class ModelSources(Base):
     __table_args__ = (
         UniqueConstraint(source_id, model_id),
         {'schema': SCHEMA},
-    )
-
-
-class ModelFile(Base):
-    __tablename__ = "modelfile"
-
-    model_id = Column(UUID(as_uuid=True), ForeignKey(Model.id, ondelete='CASCADE'), nullable=False, primary_key=True)
-    file = Column(LargeBinary, nullable=False)
-
-    model = relationship(Model, backref=backref('file', lazy='select', uselist=False))
-
-    __table_args__ = (
-        {'schema': SCHEMA}
-    )
-
-
-class Job(Base):
-    __tablename__ = "job"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid1)
-    user_id = Column(Integer, ForeignKey(User.id, ondelete='CASCADE'), nullable=False)
-    started = Column(DateTime(timezone=True), nullable=False, default=datetime.datetime.utcnow)
-
-    user = relationship(User, backref=backref('jobs', lazy='dynamic'), enable_typechecks=False)
-
-    __table_args__ = (
-        Index(__tablename__ + "_user_index", user_id),
-        {'schema': SCHEMA}
     )
 
 
