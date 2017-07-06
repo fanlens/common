@@ -42,7 +42,7 @@ def start_exclusive_run(oid: Space, session: Session, timestamp: datetime.dateti
                                                                           timestamp=timestamp)).fetchone()
     session.commit()
     job = Job(id=id, owner=owner, pid=pid, oid=oid, granted=granted, timestamp=timestamp)
-    if job.granted == False and not lenient:
+    if not job.granted and not lenient:
         raise RuntimeError('couldn\'t grant job for oid: %d' % oid)
     return job
 
@@ -70,14 +70,17 @@ def exclusive_run_ctx(oid: Space):
 
 
 def run_exclusive_job(oid: Space, job: callable):
-    with exclusive_run_ctx(oid):
-        return job()
+    try:
+        with exclusive_run_ctx(oid):
+            return job()
+    except RuntimeError as err:
+        pass
 
 
 def runs_exclusive(oid: Space):
     def wrapper(fun: callable):
         def wrapped(*args, **kwargs):
-            run_exclusive_job(oid, fun)
+            return run_exclusive_job(oid, fun)
 
         return wrapped
 
