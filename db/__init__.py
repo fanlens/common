@@ -64,10 +64,11 @@ def insert_or_update(session: Session, entry: declarative_base, column, update_f
 
 def insert_or_ignore(session: Session, entry: declarative_base, flush=False):
     """postgresql specific insert or ignore logic"""
-    session.execute(entry.__table__.insert(postgresql_append_string=ON_CONFLICT_DO_NOTHING),
-                    get_model_dict(entry))
+    result = session.execute(
+        entry.__table__.insert(postgresql_append_string=ON_CONFLICT_DO_NOTHING), get_model_dict(entry))
     if flush:
         session.flush()
+    return result
 
 
 def engine(username, password, database, host='localhost', port=5432, **kwargs):
