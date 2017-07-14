@@ -69,10 +69,10 @@ def exclusive_run_ctx(oid: Space):
         logging.debug('Done with exclusive job for oid: %d, run: %s' % (oid.value, run_id))
 
 
-def run_exclusive_job(oid: Space, job: callable):
+def run_exclusive_job(oid: Space, job: callable, args, kwargs):
     try:
         with exclusive_run_ctx(oid):
-            return job()
+            return job(*args, **kwargs)
     except RuntimeError as err:
         pass
 
@@ -80,7 +80,7 @@ def run_exclusive_job(oid: Space, job: callable):
 def runs_exclusive(oid: Space):
     def wrapper(fun: callable):
         def wrapped(*args, **kwargs):
-            return run_exclusive_job(oid, fun)
+            return run_exclusive_job(oid, fun, args, kwargs)
 
         return wrapped
 
