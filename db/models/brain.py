@@ -15,7 +15,6 @@ from sqlalchemy.orm import relationship, backref
 class Model(Base):
     __tablename__ = "model"
     tagset_id = Column(Integer, ForeignKey(TagSet.id, ondelete='CASCADE'), nullable=False)
-    user_id = Column(Integer, ForeignKey(User.id, ondelete='CASCADE'), nullable=False)
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid1)
     params = Column(JSONB, nullable=False)
@@ -27,15 +26,30 @@ class Model(Base):
                         secondary=TagTagSet.__table__,
                         primaryjoin=(tagset_id == TagTagSet.tagset_id),
                         lazy='dynamic')
-    user = relationship(User, backref=backref('models', lazy='dynamic'))
+    users = relationship(User,
+                         secondary=SCHEMA + '.model_user',
+                         backref=backref('models', lazy='dynamic'),
+                         lazy='dynamic')
     sources = relationship(Source,
                            secondary=SCHEMA + '.source_model',
                            backref=backref('models', lazy='dynamic'),
                            lazy='dynamic')
 
     __table_args__ = (
-        Index(__tablename__ + "_user_index", user_id),
         Index(__tablename__ + "_tagset_index", tagset_id),
+        {'schema': SCHEMA}
+    )
+
+
+class ModelUser(Base):
+    __tablename__ = "model_user"
+
+    id = Column(Integer, primary_key=True)
+    model_id = Column(UUID(as_uuid=True), ForeignKey(Model.id, ondelete='CASCADE'), nullable=False)
+    user_id = Column(Integer, ForeignKey(User.id, ondelete='CASCADE'), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint(model_id, user_id),
         {'schema': SCHEMA}
     )
 
@@ -62,8 +76,8 @@ class Prediction(Base):
 
     prediction = Column(JSONB, nullable=False)
 
-    model = relationship(Model, backref=backref('prediction', lazy='dynamic'))
-    data = relationship(Data, backref=backref('prediction', lazy='select', uselist=False, cascade='all, delete-orphan'))
+    data = relationship(Data, backref=backref('predictions', lazy='dynamic'))
+    model = relationship(Model, backref=backref('predictions', lazy='dynamic'))
 
     __table_args__ = (
         UniqueConstraint(data_id, model_id),

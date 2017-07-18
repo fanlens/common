@@ -30,11 +30,11 @@ class Source(Base):
     slug = Column(String, nullable=False)
 
     # disabled typechecks to work on webuser
-    user = relationship(User,
-                        secondary=SCHEMA + '.source_user',
-                        backref=backref('sources', lazy='dynamic', cascade='all, delete-orphan', single_parent=True),
-                        uselist=False,
-                        enable_typechecks=False)
+    users = relationship(User,
+                         secondary=SCHEMA + '.source_user',
+                         backref=backref('sources', lazy='dynamic', cascade='all, delete-orphan', single_parent=True),
+                         lazy='dynamic',
+                         enable_typechecks=False)
 
     __table_args__ = (
         {'schema': SCHEMA},
@@ -126,14 +126,28 @@ class TagSet(Base):
 
     id = Column(Integer, primary_key=True)
     title = Column(String(length=256), nullable=False)
-    user_id = Column(Integer, ForeignKey(User.id, ondelete='CASCADE'), nullable=False)
 
     # disabled typechecks to work on webuser
-    user = relationship(User, backref=backref('tagsets', lazy='dynamic'), enable_typechecks=False)
+    user = relationship(User,
+                        secondary='%s.tagset_user' % SCHEMA,
+                        backref=backref('tagsets', lazy='dynamic'),
+                        enable_typechecks=False)
 
     __table_args__ = (
-        UniqueConstraint(user_id, title),
         {'schema': SCHEMA},
+    )
+
+
+class TagSetUser(Base):
+    __tablename__ = "tagset_user"
+
+    id = Column(Integer, primary_key=True)
+    tagset_id = Column(Integer, ForeignKey(TagSet.id, ondelete='CASCADE'), nullable=False)
+    user_id = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint(tagset_id, user_id),
+        {'schema': SCHEMA}
     )
 
 
@@ -141,13 +155,18 @@ class Tag(Base):
     __tablename__ = 'tag'
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey(User.id, ondelete='CASCADE'), nullable=False)
+    created_by_user_id = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
     tag = Column(String(length=64), nullable=False)
 
-    data = relationship(Data, secondary=SCHEMA + '.tagging',
-                        backref=backref('tags', lazy='select', collection_class=set, cascade='all'),
+    data = relationship(Data,
+                        secondary=SCHEMA + '.tagging',
+                        backref=backref('tags', lazy='dynamic'),
                         lazy='dynamic')
-    user = relationship(User, backref=backref('tags', lazy='select', collection_class=set))
+    creator = relationship(User, backref=backref('created_tags', lazy='dynamic'))
+    user = relationship(User,
+                        secondary='%s.tag_user' % SCHEMA,
+                        backref=backref('tags', lazy='dynamic'),
+                        enable_typechecks=False)
     tagsets = relationship(TagSet, secondary=SCHEMA + '.tag_tagset',
                            backref=backref('tags', lazy='select', collection_class=set))
 
@@ -162,11 +181,27 @@ class Tag(Base):
         return not self.__eq__(other)
 
     def __hash__(self):
-        return hash("Tag(%s,%s)" % (self.user_id, self.tag))
+        return hash(repr(self))
+
+    def __repr__(self):
+        return "Tag(%s, %s)" % (self.created_by_user_id, self.tag)
 
     __table_args__ = (
-        UniqueConstraint(user_id, tag),
+        UniqueConstraint(created_by_user_id, tag),
         {'schema': SCHEMA},
+    )
+
+
+class TagUser(Base):
+    __tablename__ = "tag_user"
+
+    id = Column(Integer, primary_key=True)
+    tag_id = Column(Integer, ForeignKey(Tag.id, ondelete='CASCADE'), nullable=False)
+    user_id = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint(tag_id, user_id),
+        {'schema': SCHEMA}
     )
 
 
