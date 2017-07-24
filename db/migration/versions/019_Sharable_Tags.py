@@ -20,19 +20,11 @@ class TagSetUser(Base):
 
 upgrade_tagset_table = text('''
 INSERT INTO activity.tagset_user (user_id, tagset_id) SELECT user_id, id FROM activity.tagset ON CONFLICT DO NOTHING;
-ALTER TABLE activity.tagset DROP COLUMN IF EXISTS user_id;
+ALTER TABLE activity.tagset RENAME COLUMN user_id TO created_by_user_id;
 ''')
 
 downgrade_tagset_table = text('''
-ALTER TABLE activity.tagset ADD COLUMN IF NOT EXISTS user_id INTEGER;
-UPDATE activity.tagset SET (user_id) = (
-  SELECT user_id
-  FROM activity.tagset_user
-  WHERE activity.tagset_user.tagset_id = activity.tagset.id
-  LIMIT 1
-);
-ALTER TABLE activity.tagset ALTER COLUMN user_id SET NOT NULL;
-ALTER TABLE activity.tagset ADD CONSTRAINT tagset_user_user_id_fkey FOREIGN KEY (user_id) REFERENCES public."user"(id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE CASCADE;
+ALTER TABLE activity.tagset RENAME COLUMN created_by_user_id TO user_id;
 DROP TABLE activity.tagset_user;
 ''')
 

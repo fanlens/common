@@ -10,6 +10,7 @@ SCHEMA = 'activity'
 #     __tablename__ = "model"
 #     tagset_id = Column(Integer, ForeignKey(TagSet.id, ondelete='CASCADE'), nullable=False)
 #     id = Column(UUID(as_uuid=True), primary_key=True)
+#     created_by_user_id = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
 #     params = Column(JSONB, nullable=False)
 #     score = Column(Float, nullable=False)
 #     trained_ts = Column(DateTime(timezone=True), nullable=False, default=datetime.datetime.utcnow)
@@ -30,19 +31,11 @@ class ModelUser(Base):
 
 upgrade_model_table = text('''
 INSERT INTO activity.model_user (user_id, model_id) SELECT user_id, id FROM activity.model;
-ALTER TABLE activity.model DROP COLUMN IF EXISTS user_id
+ALTER TABLE activity.model RENAME COLUMN user_id TO created_by_user_id;
 ''')
 
 downgrade_model_table = text('''
-ALTER TABLE activity.model ADD COLUMN IF NOT EXISTS user_id INTEGER;
-UPDATE activity.model SET (user_id) = (
-  SELECT user_id
-  FROM activity.model_user
-  WHERE activity.model_user.model_id = activity.model.id
-  LIMIT 1
-);
-ALTER TABLE activity.model ALTER COLUMN user_id SET NOT NULL;
-ALTER TABLE activity.model ADD CONSTRAINT model_user_user_id_fkey FOREIGN KEY (user_id) REFERENCES public."user"(id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE CASCADE;
+ALTER TABLE activity.model RENAME COLUMN created_by_user_id TO user_id;
 DROP TABLE activity.model_user;
 ''')
 

@@ -20,6 +20,7 @@ class Model(Base):
     params = Column(JSONB, nullable=False)
     score = Column(Float, nullable=False)
     trained_ts = Column(DateTime(timezone=True), nullable=False, default=datetime.datetime.utcnow)
+    created_by_user_id = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
 
     tagset = relationship(TagSet, backref=backref('models', lazy='dynamic'))
     tags = relationship(Tag,

@@ -61,6 +61,7 @@ class Data(Base):
 
     object_id = Column(String, nullable=False)
     source_id = Column(Integer, ForeignKey(Source.id, ondelete='CASCADE'), nullable=False)
+    crawled_ts = Column(DateTime(timezone=True), nullable=False, default=datetime.datetime.utcnow)
 
     data = Column(JSONB, nullable=False)
 
@@ -131,6 +132,7 @@ class TagSet(Base):
     user = relationship(User,
                         secondary='%s.tagset_user' % SCHEMA,
                         backref=backref('tagsets', lazy='dynamic'),
+                        lazy='dynamic',
                         enable_typechecks=False)
 
     __table_args__ = (
@@ -211,6 +213,7 @@ class Tagging(Base):
     id = Column(Integer, primary_key=True)
     data_id = Column(Integer, ForeignKey(Data.id, ondelete='CASCADE'), nullable=False)
     tag_id = Column(Integer, ForeignKey(Tag.id, ondelete='CASCADE'), nullable=False)
+    tagging_ts = Column(DateTime(timezone=True), nullable=False, default=datetime.datetime.utcnow)
 
     data = relationship(Data)
     tag = relationship(Tag, backref=backref('taggings', lazy='dynamic'))
