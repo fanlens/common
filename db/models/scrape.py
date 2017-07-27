@@ -1,8 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import datetime
+import enum
+
 from db import Base
-from sqlalchemy import Column, Integer, String, UniqueConstraint
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, UniqueConstraint
+
+from .activities import SCHEMA, Source
 
 
 class Shortener(Base):
@@ -23,4 +28,23 @@ class Shortener(Base):
 
     __table_args__ = (
         UniqueConstraint(canonical),
+    )
+
+
+class CrawlState(enum.Enum):
+    START = 0
+    DONE = 1
+    FAIL = 2
+
+
+class CrawlLog(Base):
+    __tablename__ = "crawllog"
+
+    id = Column(Integer, primary_key=True)
+    source_id = Column(Integer, ForeignKey(Source.id, ondelete='CASCADE'), nullable=False)
+    timestamp = Column(DateTime(timezone=True), nullable=False, default=datetime.datetime.utcnow)
+    state = Column(Enum(CrawlState, name='crawl_state', schema='activity'), nullable=False)
+
+    __table_args__ = (
+        {'schema': SCHEMA}
     )

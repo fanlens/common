@@ -6,7 +6,7 @@ import enum
 
 from db import Base
 from db.models.users import User
-from sqlalchemy import Column, Integer, String, Enum, DateTime, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Enum, DateTime, ForeignKey, UniqueConstraint, Boolean
 from sqlalchemy.dialects.postgresql import JSONB, ARRAY
 from sqlalchemy.orm import relationship, backref
 
@@ -28,6 +28,7 @@ class Source(Base):
     type = Column(Enum(Type, name='type', schema=SCHEMA), nullable=False)
     uri = Column(String, nullable=False)
     slug = Column(String, nullable=False)
+    auto_crawl = Column(Boolean, nullable=False, default=False)
 
     # disabled typechecks to work on webuser
     users = relationship(User,
@@ -215,7 +216,7 @@ class Tagging(Base):
     tag_id = Column(Integer, ForeignKey(Tag.id, ondelete='CASCADE'), nullable=False)
     tagging_ts = Column(DateTime(timezone=True), nullable=False, default=datetime.datetime.utcnow)
 
-    data = relationship(Data)
+    data = relationship(Data, backref=backref('taggings', lazy='dynamic'))
     tag = relationship(Tag, backref=backref('taggings', lazy='dynamic'))
 
     __table_args__ = (
