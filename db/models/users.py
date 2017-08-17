@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import enum
 import datetime
 from db import Base
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, CheckConstraint, UniqueConstraint
@@ -43,4 +44,34 @@ class Enquiry(Base):
         # todo not a 100% correct with the plus i think
         CheckConstraint("email ~* '^[A-Za-z0-9._%-+]+@[A-Za-z0-9.-]+[.][A-Za-z]+$'"),
         UniqueConstraint(email, tag, timestamp),
+    )
+
+
+class TwitterAuth(Base):
+    __tablename__ = "twitter_auth"
+
+    id = Column(Integer, primary_key=True)
+    oauth_token = Column(String, nullable=False)
+    oauth_token_secret = Column(String, nullable=False)
+    timestamp = Column(DateTime(timezone=True), nullable=False, default=datetime.datetime.utcnow)
+
+    __table_args__ = tuple(
+        UniqueConstraint(oauth_token)
+    )
+
+
+class UserTwitterAuth(Base):
+    __tablename__ = "user_twitter_auth"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
+    screen_name = Column(String, nullable=False)
+    oauth_token = Column(String, ForeignKey(TwitterAuth.oauth_token, ondelete='SET NULL'), nullable=True)
+
+    user = relationship(User, backref=backref('twitter', lazy='dynamic'))
+    auth = relationship(TwitterAuth, backref=backref('user_twitter', lazy='dynamic'))
+
+    __table_args__ = (
+        UniqueConstraint(user_id, screen_name),
+        UniqueConstraint(user_id, oauth_token)
     )
