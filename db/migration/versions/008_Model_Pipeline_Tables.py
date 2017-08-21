@@ -10,7 +10,7 @@ Base = declarative_base()
 class Model(Base):
     __tablename__ = "models"
     tagset_id = Column(Integer, ForeignKey('meta.tagsets.id', ondelete='CASCADE'), nullable=False)
-    user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    user_id = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
 
     id = Column(String, primary_key=True)
     params = Column(JSONB, nullable=False)
