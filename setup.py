@@ -6,8 +6,8 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="fl-base",
-    version="3.0.0",
+    name="fl-common",
+    version="4.0.0",
     long_description=__doc__,
     packages=find_packages(),
     include_package_data=True,
