@@ -6,7 +6,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="fl-common",
+    name="common",
     version="4.0.0",
     long_description=__doc__,
     packages=find_packages(),
