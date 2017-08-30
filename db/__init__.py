@@ -86,7 +86,6 @@ Base = declarative_base()
 
 
 class DB(object):
-    """ central database manager """
     _db = threading.local()
     _db.engine = None
     _db.Session = None
@@ -101,7 +100,7 @@ class DB(object):
             cls._db.AutoSession = sessionmaker(bind=cls._db.engine, autocommit=True, autoflush=True)
 
     def __init__(self):
-        self.init_db()
+        self.init_db(force=False)
 
     @property
     def engine(self) -> sqlalchemy.engine.Engine:
