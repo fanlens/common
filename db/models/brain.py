@@ -84,9 +84,3 @@ class Prediction(Base):
         UniqueConstraint(data_id, model_id),
         {'schema': SCHEMA}
     )
-
-
-if __name__ == "__main__":
-    from db import DB
-
-    Base.metadata.create_all(DB().engine)

@@ -349,9 +349,3 @@ class Translation(Base):
         UniqueConstraint(text_id, target_language),
         {'schema': SCHEMA},
     )
-
-
-if __name__ == "__main__":
-    from db import DB
-
-    Base.metadata.create_all(DB().engine)

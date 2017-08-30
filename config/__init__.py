@@ -12,6 +12,7 @@ class ConfigBase(Mapping, metaclass=ABCMeta):
     def __init__(self, section: str = ''):
         self._section = section
 
+
     @property
     def section(self):
         """:return: the section name covered by this instance"""
