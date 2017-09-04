@@ -5,7 +5,7 @@ import argparse
 
 from PIL import Image
 
-from db import DB
+from db import get_session
 from db.models.facebook import FacebookCommentEntry
 
 SIZE = 128
@@ -22,7 +22,7 @@ def to_image(comment: FacebookCommentEntry) -> Image:
 
 
 def fetch_comment(comment_id: str) -> FacebookCommentEntry:
-    with DB().ctx() as session:
+    with get_session() as session:
         return session.query(FacebookCommentEntry).get(comment_id)
 
 

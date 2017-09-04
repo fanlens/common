@@ -4,56 +4,71 @@
 """a db backed config"""
 
 import typing
+from contextlib import contextmanager
 
 from config import ConfigBase
-from db import DB
+from db import get_session, Session
 from db.models.config import DBSetting
 
 
-class Config(ConfigBase):
+class DeepConfig(ConfigBase):
     """
     database backed config module
     """
 
-    def __init__(self, section=''):
-        super().__init__(section=section)
-        self._db = DB()
+    def __init__(self):
+        super().__init__()
 
     def __len__(self):
-        with self._db.ctx() as session:
-            if self.section:
-                return len(session
-                           .query(DBSetting)
-                           .filter(DBSetting.key == self._section)
-                           .one().config)
-            else:
-                return session.query(DBSetting).count()
+        with get_session() as session:
+            return session.query(DBSetting).count()
 
     def __getitem__(self, key) -> dict:
-        with self._db.ctx() as session:
-            if self.section:
-                config = (session
-                          .query(DBSetting)
-                          .filter(DBSetting.key == self._section)
-                          .one()
-                          .config)
-                return config[key]
-            else:
-                config = (session
-                          .query(DBSetting)
-                          .filter(DBSetting.key == key)
-                          .one()
-                          .config)
-                return config
+        with get_session() as session:
+            config = (session
+                      .query(DBSetting)
+                      .filter(DBSetting.key == key)
+                      .one()
+                      .config)
+            return config
 
     def __iter__(self):
-        with self._db.ctx() as session:
-            if self.section:
-                return iter(session.query(DBSetting)
-                            .filter(DBSetting.key == self._section)
-                            .one().config)
-            else:
-                return (tup[0] for tup in session.query(DBSetting.key).all())
+        with get_session() as session:
+            return (tup[0] for tup in session.query(DBSetting.key).all())
+
+
+class SectionedConfig(ConfigBase):
+    def __init__(self, section):
+        super().__init__(section=section)
+
+    def __len__(self):
+        with get_session() as session:
+            return len(session
+                       .query(DBSetting)
+                       .filter(DBSetting.key == self._section)
+                       .one().config)
+
+    def __getitem__(self, key) -> dict:
+        with get_session() as session:
+            config = (session
+                      .query(DBSetting)
+                      .filter(DBSetting.key == self._section)
+                      .one()
+                      .config)
+            return config[key]
+
+    def __iter__(self):
+        with get_session() as session:
+            return iter(session.query(DBSetting)
+                        .filter(DBSetting.key == self._section)
+                        .one().config)
+
+
+def Config(section='') -> ConfigBase:
+    if section:
+        return SectionedConfig(section=section)
+    else:
+        return DeepConfig()
 
 
 def _set_value(key: str, param: str, value: typing.Any):

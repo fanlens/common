@@ -18,14 +18,24 @@ class Type(enum.Enum):
     twitter = 'twitter'
     crunchbase = 'crunchbase'
     generic = 'generic'
+    twitter_dm = 'twitter_dm'
+
+
+class SourceType(Base):
+    __tablename__ = 'source_type'
+
+    type = Column(String(length=32), primary_key=True)
+
+    __table_args__ = (
+        {'schema': SCHEMA},
+    )
 
 
 class Source(Base):
     __tablename__ = 'source'
 
     id = Column(Integer, primary_key=True)
-
-    type = Column(Enum(Type, name='type', schema=SCHEMA), nullable=False)
+    type = Column(String, ForeignKey(SourceType.type, ondelete='CASCADE'), nullable=False)
     uri = Column(String, nullable=False)
     slug = Column(String, nullable=False)
     auto_crawl = Column(Boolean, nullable=False, default=False)
@@ -349,9 +359,3 @@ class Translation(Base):
         UniqueConstraint(text_id, target_language),
         {'schema': SCHEMA},
     )
-
-
-if __name__ == "__main__":
-    from db import DB
-
-    Base.metadata.create_all(DB().engine)
