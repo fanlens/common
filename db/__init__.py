@@ -6,11 +6,10 @@
 import logging
 import typing
 import sqlalchemy
-import threading
+from multiprocessing.util import register_after_fork
 from contextlib import contextmanager
 
 from config.env import Environment
-from sqlalchemy import func
 from sqlalchemy.engine import Engine, ResultProxy
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.compiler import compiles
@@ -85,15 +84,16 @@ def default_engine(**kwargs) -> Engine:
 
 
 Base = declarative_base()
-_thread_local = threading.local()
-_thread_local.engine = default_engine()
-_thread_local.sessionmaker = sessionmaker(bind=_thread_local.engine, autocommit=False)  # type: Session
+engine = default_engine()
+_sessionmaker = sessionmaker(bind=engine, autocommit=False)  # type: Session
+
+register_after_fork(engine, Engine.dispose)
 
 
 @contextmanager
 def get_session() -> typing.Generator[Session, None, None]:
     """:return: a sqlalchemy session for the configured database"""
-    session = _thread_local.sessionmaker()
+    session = _sessionmaker()
 
     # noinspection PyBroadException
     try:

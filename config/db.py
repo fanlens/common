@@ -78,7 +78,7 @@ def _set_value(key: str, param: str, value: typing.Any):
     :param param: the key of the field to set
     :param value: the value to set
     """
-    with DB().ctx() as session:
+    with get_session() as session:
         setting = session.query(DBSetting).get(key)
         setting.config[param] = value
         session.query(DBSetting).filter(DBSetting.key == key).update({DBSetting.config: setting.config})
