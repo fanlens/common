@@ -4,11 +4,11 @@
 """the db module is responsible for managing the database connections it's based on sqlalchemy"""
 
 import logging
-import threading
 import typing
-from contextlib import contextmanager
-
 import sqlalchemy
+from contextlib import contextmanager
+from multiprocessing.util import register_after_fork
+
 from config.env import Environment
 from sqlalchemy import func
 from sqlalchemy.engine import Engine, ResultProxy
@@ -86,6 +86,7 @@ def default_engine(**kwargs) -> Engine:
 
 Base = declarative_base()
 engine = default_engine()
+register_after_fork(engine, engine.dispose)
 _sessionmaker = sessionmaker(bind=engine, autocommit=False)  # type: Session
 
 
