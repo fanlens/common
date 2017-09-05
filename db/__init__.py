@@ -7,7 +7,6 @@ import logging
 import typing
 import sqlalchemy
 from contextlib import contextmanager
-from multiprocessing.util import register_after_fork
 
 from config.env import Environment
 from sqlalchemy import func
@@ -86,7 +85,6 @@ def default_engine(**kwargs) -> Engine:
 
 Base = declarative_base()
 engine = default_engine()
-register_after_fork(engine, engine.dispose)
 _sessionmaker = sessionmaker(bind=engine, autocommit=False)  # type: Session
 
 
