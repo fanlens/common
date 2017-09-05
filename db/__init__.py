@@ -6,6 +6,7 @@
 import logging
 import typing
 import sqlalchemy
+import threading
 from contextlib import contextmanager
 
 from config.env import Environment
@@ -84,14 +85,15 @@ def default_engine(**kwargs) -> Engine:
 
 
 Base = declarative_base()
-engine = default_engine()
-_sessionmaker = sessionmaker(bind=engine, autocommit=False)  # type: Session
+_thread_local = threading.local()
+_thread_local.engine = default_engine()
+_thread_local.sessionmaker = sessionmaker(bind=_thread_local.engine, autocommit=False)  # type: Session
 
 
 @contextmanager
 def get_session() -> typing.Generator[Session, None, None]:
     """:return: a sqlalchemy session for the configured database"""
-    session = _sessionmaker()
+    session = _thread_local.sessionmaker()
 
     # noinspection PyBroadException
     try:
