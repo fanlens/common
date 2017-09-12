@@ -85,7 +85,7 @@ def default_engine(**kwargs) -> Engine:
 
 Base = declarative_base()
 engine = default_engine()
-_sessionmaker = sessionmaker(bind=engine, autocommit=False)  # type: Session
+_sessionmaker = sessionmaker(bind=engine, autocommit=False)  # type: sessionmaker
 
 register_after_fork(engine, Engine.dispose)
 
@@ -93,7 +93,7 @@ register_after_fork(engine, Engine.dispose)
 @contextmanager
 def get_session() -> typing.Generator[Session, None, None]:
     """:return: a sqlalchemy session for the configured database"""
-    session = _sessionmaker()
+    session = _sessionmaker()  # type: Session
 
     # noinspection PyBroadException
     try:

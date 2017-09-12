@@ -16,6 +16,10 @@ class User(Base):
     active = Column(Boolean)
     confirmed_at = Column(DateTime)
 
+    __table_args__ = (
+        UniqueConstraint(email),
+    )
+
 
 class Role(Base):
     __tablename__ = 'role'
@@ -24,6 +28,10 @@ class Role(Base):
     description = Column(String(255))
 
     users = relationship(User, secondary='roles_users', backref=backref('roles', lazy='dynamic', collection_class=set))
+
+    __table_args__ = (
+        UniqueConstraint(name),
+    )
 
 
 class RolesUsers(Base):

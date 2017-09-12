@@ -242,6 +242,8 @@ class TagTagSet(Base):
     tag_id = Column(Integer, ForeignKey(Tag.id, ondelete='CASCADE'), nullable=False)
     tagset_id = Column(Integer, ForeignKey(TagSet.id, ondelete='CASCADE'), nullable=False)
 
+    tag = relationship(Tag, lazy='select')
+
     __table_args__ = (
         UniqueConstraint(tag_id, tagset_id),
         {'schema': SCHEMA},
