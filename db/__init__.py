@@ -9,7 +9,7 @@ import sqlalchemy
 from multiprocessing.util import register_after_fork
 from contextlib import contextmanager
 
-from config.env import Environment
+from config import get_config
 from sqlalchemy.engine import Engine, ResultProxy
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.compiler import compiles
@@ -63,10 +63,11 @@ def insert_or_update(session: Session, entry: declarative_base, column, update_f
     return result
 
 
-def insert_or_ignore(session: Session, entry: declarative_base, flush=False) -> ResultProxy:
+def insert_or_ignore(session: Session, entry: declarative_base, flush=False, returning=None) -> ResultProxy:
     """postgresql specific insert or ignore logic"""
     result = session.execute(
-        entry.__table__.insert(postgresql_append_string=ON_CONFLICT_DO_NOTHING), _get_model_dict(entry))
+        entry.__table__.insert(postgresql_append_string=ON_CONFLICT_DO_NOTHING, returning=returning),
+        _get_model_dict(entry))
     if flush:
         session.flush()
     return result
@@ -80,7 +81,8 @@ def create_engine(username: str, password: str, database: str, host: str = 'loca
 
 
 def default_engine(**kwargs) -> Engine:
-    return create_engine(**Environment("DB"))
+    config = get_config()
+    return create_engine(**dict(config.items('DB')))
 
 
 Base = declarative_base()
