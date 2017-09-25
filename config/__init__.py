@@ -14,7 +14,7 @@ class StrictEnvDefaultConfigParser(ConfigParser):
         super(ConfigParser, self).__init__(defaults=defaults)
 
     def get(self, section, option, raw=False, vars=None, fallback=object()):
-        vars = vars or os.environ
+        vars = vars or dict((k, v) for k, v in os.environ.items() if k.startswith('FL_'))
         return super(ConfigParser, self).get(section, option, raw=raw, vars=vars, fallback=fallback)
 
     def items(self, section=None, raw=False, vars=None):
