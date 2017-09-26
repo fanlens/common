@@ -31,6 +31,15 @@ class SourceType(Base):
     )
 
 
+class Feature(Base):
+    __tablename__ = "feature"
+    feature = Column(String, primary_key=True)
+
+    __table_args__ = (
+        {'schema': SCHEMA}
+    )
+
+
 class Source(Base):
     __tablename__ = 'source'
 
@@ -49,6 +58,19 @@ class Source(Base):
 
     __table_args__ = (
         {'schema': SCHEMA},
+    )
+
+
+class SourceFeature(Base):
+    __tablename__ = "source_feature"
+
+    id = Column(Integer, primary_key=True)
+    source_id = Column(Integer, ForeignKey(Source.id, ondelete='CASCADE'), nullable=False)
+    feature = Column(String, ForeignKey(Feature.feature, ondelete='CASCADE'), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint(source_id, feature),
+        {'schema': SCHEMA}
     )
 
 
