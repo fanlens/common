@@ -47,7 +47,6 @@ class Source(Base):
     type = Column(String, ForeignKey(SourceType.type, ondelete='CASCADE'), nullable=False)
     uri = Column(String, nullable=False)
     slug = Column(String, nullable=False)
-    auto_crawl = Column(Boolean, nullable=False, default=False)
 
     # disabled typechecks to work on webuser
     users = relationship(User,
