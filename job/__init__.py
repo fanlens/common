@@ -7,8 +7,7 @@ import uuid
 from collections import namedtuple
 from contextlib import contextmanager, suppress
 from enum import Enum
-from typing import Callable
-from typing import Optional
+from typing import Callable, Optional, Generator, TypeVar, Any
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -46,7 +45,7 @@ def _init_exclusive_run() -> Run:
 def _start_exclusive_run(oid: Space,
                          session: Session,
                          timestamp: Optional[datetime.datetime] = None,
-                         lenient: bool = False):
+                         lenient: bool = False) -> Job:
     run_id, run_owner, run_pid, run_oid, run_granted, run_timestamp = session.execute(
         _START_JOB_SQL, params=dict(oid=oid.value, timestamp=timestamp)).fetchone()
     session.commit()
@@ -56,14 +55,14 @@ def _start_exclusive_run(oid: Space,
     return job
 
 
-def _close_exclusive_run(run: Run):
+def _close_exclusive_run(run: Run) -> None:
     run.session.close()
     run.connection.close()
     run.engine.dispose()
 
 
 @contextmanager
-def exclusive_run_ctx(oid: Space):
+def exclusive_run_ctx(oid: Space) -> Generator[Run, None, None]:
     """
     exclusive context within the space specified
     :param oid: the space to run in
@@ -80,7 +79,10 @@ def exclusive_run_ctx(oid: Space):
         logging.debug('Done with exclusive job for oid: %d, run: %s', oid.value, run.id)
 
 
-def run_exclusive_job(oid: Space, job: Callable, *args, **kwargs):
+_RT = TypeVar('_RT')
+
+
+def run_exclusive_job(oid: Space, job: Callable[..., _RT], *args: Any, **kwargs: Any) -> _RT:
     """
     run the given job inside an exclusive run within the space provided
     :param oid: the space to run in
@@ -92,16 +94,16 @@ def run_exclusive_job(oid: Space, job: Callable, *args, **kwargs):
         return job(*args, **kwargs)
 
 
-def runs_exclusive(oid: Space) -> Callable:
+def runs_exclusive(oid: Space) -> Callable[[Callable], Callable[..., _RT]]:
     """
     decorator to run a function insided an exclusive run within the space specified
     :param oid: the space to run in
     """
 
-    def wrapper(fun: callable):
+    def wrapper(fun: Callable[..., _RT]) -> Callable[..., _RT]:
         # pylint: disable=missing-docstring
-        def wrapped(*args, **kwargs):
-            return run_exclusive_job(oid, fun, args, kwargs)
+        def wrapped(*args: Any, **kwargs: Any) -> _RT:
+            return run_exclusive_job(oid, fun, *args, **kwargs)
 
         return wrapped
 

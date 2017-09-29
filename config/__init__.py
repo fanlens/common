@@ -6,11 +6,11 @@ Configuration helpers. The config mechanism is intended to work in concert with 
 per module. This config.ini can define variables or use string interpolation to fill in fanlens level environment
 variables following the pattern FL_*
 """
-from typing import AnyStr, Any, Dict, Optional
+from typing import Dict, Optional, List
 from collections import ItemsView
 import inspect
 import os
-from configparser import ConfigParser, _UNSET
+from configparser import ConfigParser
 from functools import lru_cache
 
 from pkg_resources import resource_string
@@ -22,32 +22,38 @@ class StrictEnvDefaultConfigParser(ConfigParser):  # pylint: disable=too-many-an
     FL_ on access. The default behaviour leads to spurious elements.
     """
 
-    def __init__(self, defaults: dict = None):
+    def __init__(self, defaults: Optional[Dict] = None) -> None:
         super().__init__(defaults=defaults)
 
-    def get(self, section: AnyStr, option: AnyStr,
-            *, raw: bool = False, vars: Optional[Dict] = None, fallback: Optional[Any] = _UNSET) -> AnyStr:
+    def get(self, section: str, option: str, *, raw: bool = False, vars: Optional[Dict] = None,  # type: ignore
+            fallback: Optional[str] = None) -> str:
         # pylint: disable=redefined-builtin
         # honor superclass signature (vars)
         _vars = vars or dict((k, v) for k, v in os.environ.items() if k.startswith('FL_'))
-        return super().get(section, option, raw=raw, vars=_vars, fallback=fallback)
+        if fallback:
+            return ConfigParser.get(self, section, option, raw=raw, vars=_vars, fallback=fallback)
 
-    def items(self, section: Optional[AnyStr] = None, raw: bool = False, vars: Optional[Dict] = None) -> ItemsView:
+        return ConfigParser.get(self, section, option, raw=raw, vars=_vars)
+
+    def items(self, section: Optional[str] = None, raw: bool = False,  # type: ignore
+              vars: Optional[Dict] = None) -> ItemsView:
         # pylint: disable=redefined-builtin
         # honor superclass signature (vars)
+        sections = []  # type: List[str]
         if section:
             sections = [section]
         else:
             sections = self.sections()
-        return ItemsView(dict((option, self.get(section=section, option=option, raw=raw, vars=vars))
-                              for option in self.options(section)
-                              for section in sections))
+            sections.append('DEFAULT')
+        return dict((iter_option, self.get(section=iter_section, option=iter_option, raw=raw, vars=vars))
+                    for iter_section in sections
+                    for iter_option in self.options(iter_section)).items()
 
 
 @lru_cache()
 def _get_config(module_name: str, config_file_name: str, max_depth: int = 0) -> StrictEnvDefaultConfigParser:
     parser = StrictEnvDefaultConfigParser()
-    config_string = None
+    config_string = ''
     read_err = None
     found = False
     while max_depth >= 0 and not found:
@@ -64,9 +70,9 @@ def _get_config(module_name: str, config_file_name: str, max_depth: int = 0) -> 
     return parser
 
 
-def get_config(module_name: str = None,
+def get_config(module_name: Optional[str] = None,
                config_file_name: str = 'config.ini',
-               max_depth=2) -> StrictEnvDefaultConfigParser:
+               max_depth: int = 2) -> StrictEnvDefaultConfigParser:
     """
     :param module_name: optional, will use callers module parent directory name if not specified. allows for nicer config() call in default case
     :param config_file_name: name of the config file located in the callers package

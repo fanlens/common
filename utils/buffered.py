@@ -11,7 +11,7 @@ class Buffered(Generic[ET]):
     # pylint: disable=too-few-public-methods
     """simple buffered execution workflow"""
 
-    def __init__(self, iterator: Iterable[ET], handler: Callable[[List[ET]], None], max_size: int = 1):
+    def __init__(self, iterator: Iterable[ET], handler: Callable[[List[ET]], None], max_size: int = 1) -> None:
         """
         create a new buffer for the provided `iterator` and execute `handler` in chunks of `max_size` elements
         :param iterator: the iterator values are drawn from
@@ -21,14 +21,14 @@ class Buffered(Generic[ET]):
         assert max_size > 0, "buffer must have at least size 1"
         self._iterator = iterator
         self._handler = handler
-        self._buffer = []
+        self._buffer = []  # type: List[ET]
         self._max_size = max_size
 
-    def __call__(self):
+    def __call__(self) -> None:
         """exhaust the iterator and call the handler with chunks of `max_size`"""
         for element in self._iterator:
             self._buffer.append(element)
-            if len(self) >= self.max_size:
+            if self.__len__() >= self.max_size:
                 self._handler(self._buffer)
                 self._buffer = []
         if self:
@@ -36,10 +36,10 @@ class Buffered(Generic[ET]):
             self._buffer = []
 
     @property
-    def max_size(self):
+    def max_size(self) -> int:
         """get maximum buffer size"""
         return self._max_size
 
-    def __len__(self):
+    def __len__(self) -> int:
         """get length of current buffer"""
         return len(self._buffer)

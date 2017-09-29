@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=invalid-name,too-few-public-methods
 """Main ORM classes related to data and its metadata."""
+from typing import Any
 
 import datetime
 import enum
@@ -226,19 +227,18 @@ class Tag(Base):
     tagsets = relationship(TagSet, secondary=SCHEMA + '.tag_tagset',
                            backref=backref('tags', lazy='select', collection_class=set))
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         if isinstance(other, Tag):
-            return ((self.tag == other.tag) and
-                    (self.user_id == other.user_id))
+            return bool(self.id == other.id)
         return False
 
-    def __ne__(self, other):
+    def __ne__(self, other: Any) -> bool:
         return not self.__eq__(other)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(repr(self))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "Tag(%s, %s)" % (self.created_by_user_id, self.tag)
 
     __table_args__ = (

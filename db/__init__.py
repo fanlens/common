@@ -6,14 +6,15 @@
 import logging
 from contextlib import contextmanager
 from multiprocessing.util import register_after_fork
-from typing import Set, Optional, Generator
+from typing import Set, Optional, Generator, Any
 
 import sqlalchemy
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.engine import Engine, ResultProxy
 from sqlalchemy.ext.compiler import compiles
-from sqlalchemy.ext.declarative import declarative_base, DeclarativeMeta
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, Session, Query
+from sqlalchemy.sql.compiler import SQLCompiler
 from sqlalchemy.sql.expression import Insert
 
 from config import get_config
@@ -22,7 +23,7 @@ ON_CONFLICT_DO_NOTHING = 'ON CONFLICT DO NOTHING'
 ON_CONFLICT_DO_UPDATE = 'ON CONFLICT (%(column)s) DO UPDATE SET %(updates)s'
 
 
-def _compiled_str(query):
+def _compiled_str(query: Query) -> str:
     return str(query.statement.compile(dialect=postgresql.dialect(), compile_kwargs={"literal_binds": True}))
 
 
@@ -34,12 +35,12 @@ def _get_model_dict(model: declarative_base) -> dict:
 
 
 @compiles(Insert)
-def _append_string(insert, compiler, **kw):
+def _append_string(insert: Insert, compiler: SQLCompiler, **kwargs: Any) -> str:
     """append a string to insert"""
-    append_string = compiler.visit_insert(insert, **kw)
+    append_string = compiler.visit_insert(insert, **kwargs)  # type: str
     if insert.kwargs['postgresql_append_string']:
         if append_string.rfind("RETURNING") == -1:
-            return append_string + " " + insert.kwargs['postgresql_append_string']
+            return "%s %s" % (append_string, insert.kwargs['postgresql_append_string'])
         return append_string.replace("RETURNING", " " + insert.kwargs['postgresql_append_string'] + " RETURNING ")
     return append_string
 
@@ -48,7 +49,7 @@ Insert.argument_for("postgresql", "append_string", None)
 
 
 def insert_or_update(session: Session,
-                     entry: DeclarativeMeta,
+                     entry: declarative_base,
                      column: str,
                      update_fields: Optional[Set[str]] = None,
                      exclude_fields: Optional[Set[str]] = None,
@@ -84,7 +85,7 @@ def insert_or_ignore(session: Session,
 
 
 def create_engine(username: str, password: str, database: str, host: str = 'localhost', port: int = 5432,
-                  **kwargs) -> Engine:
+                  **kwargs: Any) -> Engine:
     """
     Create a sqlalchemy engine.
     :param username: username used to connect to db
@@ -99,7 +100,7 @@ def create_engine(username: str, password: str, database: str, host: str = 'loca
     return sqlalchemy.create_engine(url, client_encoding='utf8', **kwargs)
 
 
-def default_engine(**kwargs) -> Engine:
+def default_engine(**kwargs: Any) -> Engine:
     """
     Create a new sqlalchemy engine based on default values provided via the config.ini
     :param kwargs: add/override additional engine arguments
@@ -111,7 +112,7 @@ def default_engine(**kwargs) -> Engine:
     return create_engine(**parameters)
 
 
-Base = declarative_base()  # pylint: disable=invalid-name
+Base = declarative_base()  # type: declarative_base   # pylint: disable=invalid-name
 
 ENGINE = default_engine()
 _SESSIONMAKER = sessionmaker(bind=ENGINE, autocommit=False)
