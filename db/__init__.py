@@ -4,19 +4,19 @@
 """the db module is responsible for managing the database connections it's based on sqlalchemy"""
 
 import logging
-import typing
-import sqlalchemy
-from multiprocessing.util import register_after_fork
 from contextlib import contextmanager
+from multiprocessing.util import register_after_fork
+from typing import Set, Optional, Generator
+
+import sqlalchemy
+from sqlalchemy.dialects import postgresql
+from sqlalchemy.engine import Engine, ResultProxy
+from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.ext.declarative import declarative_base, DeclarativeMeta
+from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.sql.expression import Insert
 
 from config import get_config
-from sqlalchemy.engine import Engine, ResultProxy
-from sqlalchemy.dialects import postgresql
-from sqlalchemy.ext.compiler import compiles
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy.orm.attributes import flag_modified
-from sqlalchemy.sql.expression import Insert
 
 ON_CONFLICT_DO_NOTHING = 'ON CONFLICT DO NOTHING'
 ON_CONFLICT_DO_UPDATE = 'ON CONFLICT (%(column)s) DO UPDATE SET %(updates)s'
@@ -36,21 +36,28 @@ def _get_model_dict(model: declarative_base) -> dict:
 @compiles(Insert)
 def _append_string(insert, compiler, **kw):
     """append a string to insert"""
-    s = compiler.visit_insert(insert, **kw)
+    append_string = compiler.visit_insert(insert, **kw)
     if insert.kwargs['postgresql_append_string']:
-        if s.rfind("RETURNING") == -1:
-            return s + " " + insert.kwargs['postgresql_append_string']
-        else:
-            return s.replace("RETURNING", " " + insert.kwargs['postgresql_append_string'] + " RETURNING ")
-    return s
+        if append_string.rfind("RETURNING") == -1:
+            return append_string + " " + insert.kwargs['postgresql_append_string']
+        return append_string.replace("RETURNING", " " + insert.kwargs['postgresql_append_string'] + " RETURNING ")
+    return append_string
 
 
 Insert.argument_for("postgresql", "append_string", None)
 
 
-def insert_or_update(session: Session, entry: declarative_base, column, update_fields: set = None, exclude_fields=set(),
-                     flush=False):
+def insert_or_update(session: Session,
+                     entry: DeclarativeMeta,
+                     column: str,
+                     update_fields: Optional[Set[str]] = None,
+                     exclude_fields: Optional[Set[str]] = None,
+                     flush: bool = False) -> ResultProxy:
+    # pylint: disable=too-many-arguments
     """postgresql specific insert or update logic"""
+    if exclude_fields is None:
+        exclude_fields = set()
+
     model_dict = _get_model_dict(entry)
     if update_fields is None:
         update_fields = set(model_dict.keys())
@@ -63,7 +70,10 @@ def insert_or_update(session: Session, entry: declarative_base, column, update_f
     return result
 
 
-def insert_or_ignore(session: Session, entry: declarative_base, flush=False, returning=None) -> ResultProxy:
+def insert_or_ignore(session: Session,
+                     entry: declarative_base,
+                     flush: bool = False,
+                     returning: Optional[str] = None) -> ResultProxy:
     """postgresql specific insert or ignore logic"""
     result = session.execute(
         entry.__table__.insert(postgresql_append_string=ON_CONFLICT_DO_NOTHING, returning=returning),
@@ -75,33 +85,49 @@ def insert_or_ignore(session: Session, entry: declarative_base, flush=False, ret
 
 def create_engine(username: str, password: str, database: str, host: str = 'localhost', port: int = 5432,
                   **kwargs) -> Engine:
-    """:return: a connection and a metadata object"""
+    """
+    Create a sqlalchemy engine.
+    :param username: username used to connect to db
+    :param password: password used to connect to db
+    :param database: the db used
+    :param host: the db host
+    :param port: the db port
+    :param kwargs: additional arguments for the engine creation
+    :return: a new sqlalchemy engine
+    """
     url = 'postgresql://{}:{}@{}:{}/{}'.format(username, password, host, port, database)
     return sqlalchemy.create_engine(url, client_encoding='utf8', **kwargs)
 
 
 def default_engine(**kwargs) -> Engine:
+    """
+    Create a new sqlalchemy engine based on default values provided via the config.ini
+    :param kwargs: add/override additional engine arguments
+    :return: sqlalchemy engine
+    """
     config = get_config()
-    return create_engine(**dict(config.items('DB')))
+    parameters = dict(config.items('DB'))
+    parameters.update(kwargs)
+    return create_engine(**parameters)
 
 
-Base = declarative_base()
-engine = default_engine()
-_sessionmaker = sessionmaker(bind=engine, autocommit=False)  # type: sessionmaker
+Base = declarative_base()  # pylint: disable=invalid-name
 
-register_after_fork(engine, Engine.dispose)
+ENGINE = default_engine()
+_SESSIONMAKER = sessionmaker(bind=ENGINE, autocommit=False)
+
+register_after_fork(ENGINE, Engine.dispose)
 
 
 @contextmanager
-def get_session() -> typing.Generator[Session, None, None]:
+def get_session() -> Generator[Session, None, None]:
     """:return: a sqlalchemy session for the configured database"""
-    session = _sessionmaker()  # type: Session
+    session = _SESSIONMAKER()
 
-    # noinspection PyBroadException
     try:
         yield session
-    except Exception as err:
-        logging.exception('caught exception in db context, rolling back transaction', err)
+    except Exception:  # pylint: disable=broad-except
+        logging.exception('caught exception in db context, rolling back transaction')
         session.rollback()
     finally:
         session.close()

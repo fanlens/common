@@ -1,30 +1,47 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Configuration helpers. The config mechanism is intended to work in concert with a top level config.ini file
+per module. This config.ini can define variables or use string interpolation to fill in fanlens level environment
+variables following the pattern FL_*
+"""
+from typing import AnyStr, Any, Dict, Optional
+from collections import ItemsView
 import inspect
 import os
-from configparser import ConfigParser
+from configparser import ConfigParser, _UNSET
 from functools import lru_cache
 
 from pkg_resources import resource_string
 
 
-class StrictEnvDefaultConfigParser(ConfigParser):
-    def __init__(self, defaults=None):
-        super(ConfigParser, self).__init__(defaults=defaults)
+class StrictEnvDefaultConfigParser(ConfigParser):  # pylint: disable=too-many-ancestors
+    """
+    A stricter version of the default config parser that automatically pulls in environment variables starting with
+    FL_ on access. The default behaviour leads to spurious elements.
+    """
 
-    def get(self, section, option, raw=False, vars=None, fallback=object()):
-        vars = vars or dict((k, v) for k, v in os.environ.items() if k.startswith('FL_'))
-        return super(ConfigParser, self).get(section, option, raw=raw, vars=vars, fallback=fallback)
+    def __init__(self, defaults: dict = None):
+        super().__init__(defaults=defaults)
 
-    def items(self, section=None, raw=False, vars=None):
+    def get(self, section: AnyStr, option: AnyStr,
+            *, raw: bool = False, vars: Optional[Dict] = None, fallback: Optional[Any] = _UNSET) -> AnyStr:
+        # pylint: disable=redefined-builtin
+        # honor superclass signature (vars)
+        _vars = vars or dict((k, v) for k, v in os.environ.items() if k.startswith('FL_'))
+        return super().get(section, option, raw=raw, vars=_vars, fallback=fallback)
+
+    def items(self, section: Optional[AnyStr] = None, raw: bool = False, vars: Optional[Dict] = None) -> ItemsView:
+        # pylint: disable=redefined-builtin
+        # honor superclass signature (vars)
         if section:
             sections = [section]
         else:
             sections = self.sections()
-        return [(option, self.get(section=section, option=option))
-                for option in self.options(section)
-                for section in sections]
+        return ItemsView(dict((option, self.get(section=section, option=option, raw=raw, vars=vars))
+                              for option in self.options(section)
+                              for section in sections))
 
 
 @lru_cache()

@@ -1,14 +1,24 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+"""Utilities to run buffered operations"""
 
-"""buffer utilities"""
+from typing import Iterable, TypeVar, Generic, Callable, List
+
+ET = TypeVar('ET')
 
 
-class Buffered(object):
+class Buffered(Generic[ET]):
+    # pylint: disable=too-few-public-methods
     """simple buffered execution workflow"""
 
-    def __init__(self, iterator, handler, max_size=1):
-        """create a new buffer for the provided `iterator` and execute `handler` in chunks of `max_size` elements"""
+    def __init__(self, iterator: Iterable[ET], handler: Callable[[List[ET]], None], max_size: int = 1):
+        """
+        create a new buffer for the provided `iterator` and execute `handler` in chunks of `max_size` elements
+        :param iterator: the iterator values are drawn from
+        :param handler: the handler executed on the buffer. a callable of the form (buffer: List[T]) -> None
+        :param max_size: maximum size the buffer can grow to before invoking the handler function. must > 0.
+        """
+        assert max_size > 0, "buffer must have at least size 1"
         self._iterator = iterator
         self._handler = handler
         self._buffer = []
@@ -21,7 +31,7 @@ class Buffered(object):
             if len(self) >= self.max_size:
                 self._handler(self._buffer)
                 self._buffer = []
-        if len(self) > 0:
+        if self:
             self._handler(self._buffer)
             self._buffer = []
 
