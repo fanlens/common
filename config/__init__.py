@@ -1,6 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Configuration helpers. The config mechanism is intended to work in concert with a top level config.ini file
+per module. This config.ini can define variables or use string interpolation to fill in fanlens level environment
+variables following the pattern FL_*
+"""
+from typing import Dict, Optional, List
+from collections import ItemsView
 import inspect
 import os
 from configparser import ConfigParser
@@ -9,28 +16,44 @@ from functools import lru_cache
 from pkg_resources import resource_string
 
 
-class StrictEnvDefaultConfigParser(ConfigParser):
-    def __init__(self, defaults=None):
-        super(ConfigParser, self).__init__(defaults=defaults)
+class StrictEnvDefaultConfigParser(ConfigParser):  # pylint: disable=too-many-ancestors
+    """
+    A stricter version of the default config parser that automatically pulls in environment variables starting with
+    FL_ on access. The default behaviour leads to spurious elements.
+    """
 
-    def get(self, section, option, raw=False, vars=None, fallback=object()):
-        vars = vars or dict((k, v) for k, v in os.environ.items() if k.startswith('FL_'))
-        return super(ConfigParser, self).get(section, option, raw=raw, vars=vars, fallback=fallback)
+    def __init__(self, defaults: Optional[Dict] = None) -> None:
+        super().__init__(defaults=defaults)
 
-    def items(self, section=None, raw=False, vars=None):
+    def get(self, section: str, option: str, *, raw: bool = False, vars: Optional[Dict] = None,  # type: ignore
+            fallback: Optional[str] = None) -> str:
+        # pylint: disable=redefined-builtin
+        # honor superclass signature (vars)
+        _vars = vars or dict((k, v) for k, v in os.environ.items() if k.startswith('FL_'))
+        if fallback:
+            return ConfigParser.get(self, section, option, raw=raw, vars=_vars, fallback=fallback)
+
+        return ConfigParser.get(self, section, option, raw=raw, vars=_vars)
+
+    def items(self, section: Optional[str] = None, raw: bool = False,  # type: ignore
+              vars: Optional[Dict] = None) -> ItemsView:
+        # pylint: disable=redefined-builtin
+        # honor superclass signature (vars)
+        sections = []  # type: List[str]
         if section:
             sections = [section]
         else:
             sections = self.sections()
-        return [(option, self.get(section=section, option=option))
-                for option in self.options(section)
-                for section in sections]
+            sections.append('DEFAULT')
+        return dict((iter_option, self.get(section=iter_section, option=iter_option, raw=raw, vars=vars))
+                    for iter_section in sections
+                    for iter_option in self.options(iter_section)).items()
 
 
 @lru_cache()
 def _get_config(module_name: str, config_file_name: str, max_depth: int = 0) -> StrictEnvDefaultConfigParser:
     parser = StrictEnvDefaultConfigParser()
-    config_string = None
+    config_string = ''
     read_err = None
     found = False
     while max_depth >= 0 and not found:
@@ -47,9 +70,9 @@ def _get_config(module_name: str, config_file_name: str, max_depth: int = 0) -> 
     return parser
 
 
-def get_config(module_name: str = None,
+def get_config(module_name: Optional[str] = None,
                config_file_name: str = 'config.ini',
-               max_depth=2) -> StrictEnvDefaultConfigParser:
+               max_depth: int = 2) -> StrictEnvDefaultConfigParser:
     """
     :param module_name: optional, will use callers module parent directory name if not specified. allows for nicer config() call in default case
     :param config_file_name: name of the config file located in the callers package

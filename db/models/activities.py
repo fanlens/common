@@ -1,19 +1,24 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable=invalid-name,too-few-public-methods
+"""Main ORM classes related to data and its metadata."""
+from typing import Any
 
 import datetime
 import enum
 
-from db import Base
-from db.models.users import User
-from sqlalchemy import Column, Integer, String, Enum, DateTime, ForeignKey, UniqueConstraint, Boolean
+from sqlalchemy import Column, Integer, String, Enum, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, ARRAY
 from sqlalchemy.orm import relationship, backref
+
+from db import Base
+from db.models.users import User
 
 SCHEMA = 'activity'
 
 
 class Type(enum.Enum):
+    """Helper class work with foreign key constricted `Source`/`Data` type."""
     facebook = 'facebook'
     twitter = 'twitter'
     crunchbase = 'crunchbase'
@@ -22,6 +27,7 @@ class Type(enum.Enum):
 
 
 class SourceType(Base):
+    """Allowed `Source` types. See also `Type`."""
     __tablename__ = 'source_type'
 
     type = Column(String(length=32), primary_key=True)
@@ -32,6 +38,7 @@ class SourceType(Base):
 
 
 class Feature(Base):
+    """Specific features that can be enabled on a source by source basis. E.g. `Translation`."""
     __tablename__ = "feature"
     feature = Column(String, primary_key=True)
 
@@ -41,6 +48,7 @@ class Feature(Base):
 
 
 class Source(Base):
+    """Information about the origin of `Data` entries, as well as the main model for access control."""
     __tablename__ = 'source'
 
     id = Column(Integer, primary_key=True)
@@ -61,6 +69,7 @@ class Source(Base):
 
 
 class SourceFeature(Base):
+    """Associate (multiple) `Feature` with `Source`."""
     __tablename__ = "source_feature"
 
     id = Column(Integer, primary_key=True)
@@ -74,6 +83,7 @@ class SourceFeature(Base):
 
 
 class SourceUser(Base):
+    """Access Control. Associate (multiple) `User` with `Source`."""
     __tablename__ = 'source_user'
 
     id = Column(Integer, primary_key=True)
@@ -87,6 +97,10 @@ class SourceUser(Base):
 
 
 class Data(Base):
+    """
+    A "raw", crawled data entry. The original data is stored as JSON. Meta tables store specific aspects of this data
+   in a `Type` agnostic way.
+    """
     __tablename__ = 'data'
 
     id = Column(Integer, primary_key=True)
@@ -110,6 +124,7 @@ class Data(Base):
 
 
 class Text(Base):
+    """Extracted text from the `Data` entry."""
     __tablename__ = 'text'
 
     id = Column(Integer, primary_key=True)
@@ -125,6 +140,7 @@ class Text(Base):
 
 
 class Time(Base):
+    """Extracted creation time from the `Data` entry."""
     __tablename__ = 'time'
 
     id = Column(Integer, primary_key=True)
@@ -140,6 +156,7 @@ class Time(Base):
 
 
 class Fingerprint(Base):
+    """Extracted fingerprint from the `Data` entry."""
     __tablename__ = 'fingerprint'
 
     id = Column(Integer, primary_key=True)
@@ -155,6 +172,7 @@ class Fingerprint(Base):
 
 
 class TagSet(Base):
+    """A titled set of tags."""
     __tablename__ = 'tagset'
 
     id = Column(Integer, primary_key=True)
@@ -173,6 +191,10 @@ class TagSet(Base):
 
 
 class TagSetUser(Base):
+    """
+    Associate (multiple) `User` with `TagSet`.
+    (`User` should have access to all `Tag` associated with this `TagSet` via `TagTagSet`)
+    """
     __tablename__ = "tagset_user"
 
     id = Column(Integer, primary_key=True)
@@ -186,6 +208,7 @@ class TagSetUser(Base):
 
 
 class Tag(Base):
+    """A freeform natural language tag that can be used to categorize `Data`"""
     __tablename__ = 'tag'
 
     id = Column(Integer, primary_key=True)
@@ -204,20 +227,18 @@ class Tag(Base):
     tagsets = relationship(TagSet, secondary=SCHEMA + '.tag_tagset',
                            backref=backref('tags', lazy='select', collection_class=set))
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         if isinstance(other, Tag):
-            return ((self.tag == other.tag) and
-                    (self.user_id == other.user_id))
-        else:
-            return False
+            return bool(self.id == other.id)
+        return False
 
-    def __ne__(self, other):
+    def __ne__(self, other: Any) -> bool:
         return not self.__eq__(other)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(repr(self))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "Tag(%s, %s)" % (self.created_by_user_id, self.tag)
 
     __table_args__ = (
@@ -227,6 +248,7 @@ class Tag(Base):
 
 
 class TagUser(Base):
+    """Associated (multiple) `User` with `Tag`"""
     __tablename__ = "tag_user"
 
     id = Column(Integer, primary_key=True)
@@ -240,6 +262,7 @@ class TagUser(Base):
 
 
 class Tagging(Base):
+    """A manual (by a `User`) categorization of `Data` by a `Tag`."""
     __tablename__ = 'tagging'
 
     id = Column(Integer, primary_key=True)
@@ -257,6 +280,7 @@ class Tagging(Base):
 
 
 class TagTagSet(Base):
+    """Associate (multiple) `Tag` with a `TagSet`"""
     __tablename__ = 'tag_tagset'
 
     id = Column(Integer, primary_key=True)
@@ -353,6 +377,7 @@ Lang = enum.Enum('Lang',
 
 
 class Language(Base):
+    """Extracted language from the `Data` entry."""
     __tablename__ = 'language'
 
     id = Column(Integer, primary_key=True)
@@ -369,6 +394,7 @@ class Language(Base):
 
 
 class Translation(Base):
+    """Extracted translation of a `Text`."""
     __tablename__ = 'translation'
 
     id = Column(Integer, primary_key=True)

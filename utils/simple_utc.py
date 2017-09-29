@@ -1,14 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from datetime import tzinfo, timedelta
+"""Conversion/Helper for UTC types and parsing"""
+from typing import Optional
+from datetime import tzinfo, timedelta, datetime
 
 
 class SimpleUTC(tzinfo):
-    def tzname(self):
+    """Class to be used to give naive UTC tzinfo for parsed timestamps"""
+
+    def tzname(self, _: Optional[datetime]) -> str:
         return "UTC"
 
-    def utcoffset(self, dt):
+    def utcoffset(self, _: Optional[datetime]) -> timedelta:
+        return timedelta(0)
+
+    def dst(self, _: Optional[datetime]) -> Optional[timedelta]:
         return timedelta(0)
 
 
-simple_utc = SimpleUTC()
+SIMPLE_UTC = SimpleUTC()
