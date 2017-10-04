@@ -9,8 +9,8 @@ import enum
 
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, UniqueConstraint
 
-from db import Base
 from .activities import SCHEMA, Source
+from .. import Base
 
 
 class Shortener(Base):

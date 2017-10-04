@@ -71,7 +71,7 @@ def _get_config(module_name: str, config_file_name: str, max_depth: int = 0) -> 
 
 def get_config(module_name: Optional[str] = None,
                config_file_name: str = 'config.ini',
-               max_depth: int = 2) -> StrictEnvDefaultConfigParser:
+               max_depth: int = 3) -> StrictEnvDefaultConfigParser:
     """
     :param module_name: optional, will use callers module parent directory name if not specified. allows for nicer config() call in default case
     :param config_file_name: name of the config file located in the callers package

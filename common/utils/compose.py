@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """Function composing"""
 import functools
-from typing import TypeVar, Callable, Any, List  # pylint: disable=unused-import
+from typing import TypeVar, Callable, Any, List
 
 _CT = TypeVar('_CT')
 _CS = TypeVar('_CS')
@@ -22,7 +22,7 @@ R = TypeVar('R')
 
 def compose(func: Callable[[T], Any], *funcs: Callable[[Any], Any]) -> Callable[[T], R]:
     """convenience function to chain transformations"""
-    function_list = [func]  # type: List[Callable[[Any], Any]]
+    function_list: List[Callable[[Any], Any]] = [func]
     function_list.extend(funcs)
     composed = functools.reduce(_compose,
                                 reversed(function_list),
