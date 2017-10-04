@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 """
 Configuration helpers. The config mechanism is intended to work in concert with a top level config.ini file
 per module. This config.ini can define variables or use string interpolation to fill in fanlens level environment

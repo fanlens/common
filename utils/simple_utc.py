@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """Conversion/Helper for UTC types and parsing"""
-from typing import Optional
 from datetime import tzinfo, timedelta, datetime
+from typing import Optional
 
 
 class SimpleUTC(tzinfo):
@@ -16,6 +16,3 @@ class SimpleUTC(tzinfo):
 
     def dst(self, _: Optional[datetime]) -> Optional[timedelta]:
         return timedelta(0)
-
-
-SIMPLE_UTC = SimpleUTC()
