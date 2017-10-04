@@ -11,8 +11,8 @@ from sqlalchemy import Column, Integer, String, Enum, DateTime, ForeignKey, Uniq
 from sqlalchemy.dialects.postgresql import JSONB, ARRAY
 from sqlalchemy.orm import relationship, backref
 
-from db import Base
-from db.models.users import User
+from .. import Base
+from ..models.users import User
 
 SCHEMA = 'activity'
 

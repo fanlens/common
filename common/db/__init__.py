@@ -17,7 +17,7 @@ from sqlalchemy.orm import sessionmaker, Session, Query
 from sqlalchemy.sql.compiler import SQLCompiler
 from sqlalchemy.sql.expression import Insert
 
-from config import get_config
+from ..config import get_config
 
 ON_CONFLICT_DO_NOTHING = 'ON CONFLICT DO NOTHING'
 ON_CONFLICT_DO_UPDATE = 'ON CONFLICT (%(column)s) DO UPDATE SET %(updates)s'
@@ -37,7 +37,7 @@ def _get_model_dict(model: declarative_base) -> dict:
 @compiles(Insert)
 def _append_string(insert: Insert, compiler: SQLCompiler, **kwargs: Any) -> str:
     """append a string to insert"""
-    append_string = compiler.visit_insert(insert, **kwargs)  # type: str
+    append_string: str = compiler.visit_insert(insert, **kwargs)
     if insert.kwargs['postgresql_append_string']:
         if append_string.rfind("RETURNING") == -1:
             return "%s %s" % (append_string, insert.kwargs['postgresql_append_string'])
@@ -112,7 +112,7 @@ def default_engine(**kwargs: Any) -> Engine:
     return create_engine(**parameters)
 
 
-Base = declarative_base()  # type: declarative_base   # pylint: disable=invalid-name
+Base: declarative_base = declarative_base()  # pylint: disable=invalid-name
 
 ENGINE = default_engine()
 _SESSIONMAKER = sessionmaker(bind=ENGINE, autocommit=False)

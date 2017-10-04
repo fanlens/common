@@ -6,12 +6,13 @@
 import datetime
 import uuid
 
-from db import Base
-from db.models.activities import SCHEMA, Tag, TagSet, TagTagSet, Source, Data
-from db.models.users import User
 from sqlalchemy import Column, Integer, Float, DateTime, ForeignKey, Index, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship, backref
+
+from .. import Base
+from ..models.activities import SCHEMA, Tag, TagSet, TagTagSet, Source, Data
+from ..models.users import User
 
 
 class Model(Base):

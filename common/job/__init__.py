@@ -13,8 +13,8 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import NullPool
 
-from db import default_engine
-from db.models.job import Job
+from ..db import default_engine
+from ..db.models.job import Job
 
 
 class Space(Enum):

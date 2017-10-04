@@ -6,8 +6,8 @@ import datetime
 
 from sqlalchemy import Column, Integer, BigInteger, Boolean, DateTime, String, Index
 
-from db import Base
-from db.models.activities import SCHEMA
+from .. import Base
+from ..models.activities import SCHEMA
 
 
 class Job(Base):

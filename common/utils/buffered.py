@@ -21,7 +21,7 @@ class Buffered(Generic[ET]):
         assert max_size > 0, "buffer must have at least size 1"
         self._iterator = iterator
         self._handler = handler
-        self._buffer = []  # type: List[ET]
+        self._buffer: List[ET] = []
         self._max_size = max_size
 
     def __call__(self) -> None:

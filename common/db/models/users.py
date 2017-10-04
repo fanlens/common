@@ -8,7 +8,7 @@ import datetime
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, CheckConstraint, UniqueConstraint
 from sqlalchemy.orm import relationship, backref
 
-from db import Base
+from .. import Base
 
 
 class User(Base):
