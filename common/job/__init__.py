@@ -8,6 +8,7 @@ from collections import namedtuple
 from contextlib import contextmanager, suppress
 from enum import Enum
 from typing import Callable, Optional, Generator, TypeVar, Any
+from functools import wraps
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -102,6 +103,7 @@ def runs_exclusive(oid: Space) -> Callable[[Callable], Callable[..., _RT]]:
 
     def wrapper(fun: Callable[..., _RT]) -> Callable[..., _RT]:
         # pylint: disable=missing-docstring
+        @wraps(fun)
         def wrapped(*args: Any, **kwargs: Any) -> _RT:
             return run_exclusive_job(oid, fun, *args, **kwargs)
 
