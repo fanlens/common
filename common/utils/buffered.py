@@ -2,16 +2,29 @@
 # -*- coding: utf-8 -*-
 """Utilities to run buffered operations"""
 
-from typing import Iterable, TypeVar, Generic, Callable, List
+from abc import abstractmethod
+from typing import Callable, Generic, Iterable, List, TypeVar, Union
 
 ET = TypeVar('ET')
+
+
+class HandlerBase(Generic[ET]):
+    """Base class for `Buffered` handlers"""
+
+    @abstractmethod
+    def __call__(self, batch: Iterable[ET]) -> None:
+        """ :param batch: a sub batch of elements to be handled """
+        raise NotImplementedError("Not implemented by subclass")
 
 
 class Buffered(Generic[ET]):
     # pylint: disable=too-few-public-methods
     """simple buffered execution workflow"""
 
-    def __init__(self, iterator: Iterable[ET], handler: Callable[[List[ET]], None], max_size: int = 1) -> None:
+    def __init__(self,
+                 iterator: Iterable[ET],
+                 handler: Union[HandlerBase[ET], Callable[[Iterable[ET]], None]],
+                 max_size: int = 1) -> None:
         """
         create a new buffer for the provided `iterator` and execute `handler` in chunks of `max_size` elements
         :param iterator: the iterator values are drawn from
