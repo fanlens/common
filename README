@@ -1,0 +1,5 @@
+Common functionality used throughout Fanlens:
+
+* Configuration handling
+* Database connection and models
+* Other utilities

@@ -1,14 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable=invalid-name,too-few-public-methods
+"""User/Authentication ORM classes."""
 
-import enum
 import datetime
-from db import Base
+
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, CheckConstraint, UniqueConstraint
 from sqlalchemy.orm import relationship, backref
 
+from .. import Base
+
 
 class User(Base):
+    """A user entry. Main natural identity is `User.email`"""
     __tablename__ = 'user'
     id = Column(Integer, primary_key=True)
     email = Column(String(255), unique=True)
@@ -22,6 +26,7 @@ class User(Base):
 
 
 class Role(Base):
+    """Roles a user may have. Specify access rights for different subsystems, e.g. the main tagger module."""
     __tablename__ = 'role'
     id = Column(Integer, primary_key=True)
     name = Column(String(80), unique=True)
@@ -35,12 +40,14 @@ class Role(Base):
 
 
 class RolesUsers(Base):
+    """User to Role Association"""
     __tablename__ = 'roles_users'
     user_id = Column(Integer, ForeignKey(User.id), primary_key=True)
     role_id = Column(Integer, ForeignKey(Role.id), primary_key=True)
 
 
 class Enquiry(Base):
+    """Enquiries allow random public users to enter their email and get info about different aspects (`Enquiry.tag`)."""
     __tablename__ = "enquiries"
 
     id = Column(Integer, primary_key=True)
@@ -56,6 +63,7 @@ class Enquiry(Base):
 
 
 class TwitterAuth(Base):
+    """Stores twitter auth tokens (some temporary) for different parts of the signin/signup oauth flow."""
     __tablename__ = "twitter_auth"
 
     id = Column(Integer, primary_key=True)
@@ -69,6 +77,7 @@ class TwitterAuth(Base):
 
 
 class UserTwitterAuth(Base):
+    """Associates a valid `TwitterAuth` token to a `User`."""
     __tablename__ = "user_twitter_auth"
 
     id = Column(Integer, primary_key=True)

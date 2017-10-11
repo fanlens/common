@@ -1,16 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable=invalid-name,too-few-public-methods
+
+"""Web scraping related ORM classes"""
 
 import datetime
 import enum
 
-from db import Base
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, UniqueConstraint
 
 from .activities import SCHEMA, Source
+from .. import Base
 
 
 class Shortener(Base):
+    """"A shortened link with its extracted meta data"""
     __tablename__ = "shortener"
 
     id = Column(Integer, primary_key=True)
@@ -32,12 +36,14 @@ class Shortener(Base):
 
 
 class CrawlState(enum.Enum):
+    """State of a crawling job"""
     START = 0
     DONE = 1
     FAIL = 2
 
 
 class CrawlLog(Base):
+    """A WAL entry informing about the state of a crawling job."""
     __tablename__ = "crawllog"
 
     id = Column(Integer, primary_key=True)

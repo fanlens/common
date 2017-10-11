@@ -1,13 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable=invalid-name,too-few-public-methods
+"""Job related ORM classes"""
 import datetime
 
-from db import Base
-from db.models.activities import SCHEMA
-from sqlalchemy import Column, Integer, ForeignKey, BigInteger, Boolean, DateTime, String, Index
+from sqlalchemy import Column, Integer, BigInteger, Boolean, DateTime, String, Index
+
+from .. import Base
+from ..models.activities import SCHEMA
 
 
 class Job(Base):
+    """Represents a running Job in the database. Used mainly with the `job` module for exclusive runs."""
     __tablename__ = "job"
 
     id = Column(Integer, primary_key=True)
