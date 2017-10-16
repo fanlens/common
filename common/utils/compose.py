@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """Function composing"""
 import functools
 from typing import TypeVar, Callable, Any, List

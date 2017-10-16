@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """ Tools for exclusive jobs backed by postgres advisory locks"""
 import datetime
 import logging

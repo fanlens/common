@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """Conversion/Helper for UTC types and parsing"""
 from datetime import tzinfo, timedelta, datetime
 from typing import Optional

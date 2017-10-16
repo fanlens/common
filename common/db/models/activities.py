@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # pylint: disable=invalid-name,too-few-public-methods
 """Main ORM classes related to data and its metadata."""
 from typing import Any
