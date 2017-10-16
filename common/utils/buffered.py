@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """Utilities to run buffered operations"""
 
 from abc import abstractmethod

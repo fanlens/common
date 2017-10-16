@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # pylint: disable=invalid-name,too-few-public-methods
 """Job related ORM classes"""
 import datetime

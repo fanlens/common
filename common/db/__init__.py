@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 """the db module is responsible for managing the database connections it's based on sqlalchemy"""
 
 import logging
